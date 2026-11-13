@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="고척스카이돔 공연 관람 통합 정보 서비스 MVP (정보시스템 설계와 평가 과제)">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>고척돔 공연 가이드</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* Layout: one phone-width app column, header on top, scrolling body, tab bar fixed at the bottom. Tokens = Figma "Theme" collection */
+:root{
+  --bg:#fafafa;--card:#ffffff;--muted:#f0f0f0;--ph:#e5e5e5;--inv:#0a0a0a;
+  --border:#e5e5e5;--bstrong:#0a0a0a;--tp:#0a0a0a;--ts:#525252;
+  --on-inv:#ffffff;--on-inv-m:#a3a3a3;--focus:#737373;--icon-ph:#8a8a8a;
+  --desk:#e9e9e9;--mid:#a3a3a3;
+  --font:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#000000;--card:#111111;--muted:#1c1c1c;--ph:#262626;--inv:#fafafa;
+  --border:#2e2e2e;--bstrong:#fafafa;--tp:#fafafa;--ts:#a3a3a3;
+  --on-inv:#0a0a0a;--on-inv-m:#525252;--focus:#8a8a8a;--icon-ph:#737373;--desk:#0d0d0d;--mid:#525252;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000;--card:#111111;--muted:#1c1c1c;--ph:#262626;--inv:#fafafa;
+  --border:#2e2e2e;--bstrong:#fafafa;--tp:#fafafa;--ts:#a3a3a3;
+  --on-inv:#0a0a0a;--on-inv-m:#525252;--focus:#8a8a8a;--icon-ph:#737373;--desk:#0d0d0d;--mid:#525252;color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--desk);color:var(--tp);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;text-align:left}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.app{height:100%;max-width:430px;margin:0 auto;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden}
+@media (min-width:600px){
+  body{padding-block:24px}
+  .app{height:calc(100% - 0px);max-height:900px;border-radius:28px;border:1px solid var(--border)}
+}
+.hdr{display:flex;align-items:center;gap:6px;padding:14px max(20px,env(safe-area-inset-right,0px)) 12px max(20px,env(safe-area-inset-left,0px));flex:none}
+.hdr.back{padding-left:max(12px,env(safe-area-inset-left,0px))}
+.hdr h1{font-size:22px;font-weight:700;margin:0;flex:1;min-width:0;letter-spacing:-0.01em}
+.hdr.back h1{font-size:18px}
+.venue-btn{display:flex;align-items:center;gap:4px;flex:1;min-width:0}
+.venue-btn h1{flex:none}
+.ibtn{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;flex:none}
+.ibtn:hover{background:var(--muted)}
+.body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:8px max(20px,env(safe-area-inset-right,0px)) 24px max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+.body.grow-end{min-height:0}
+.spacer{flex:1}
+
+.tabbar{flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--border);background:var(--card);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 0 14px;font-size:11px;color:var(--ts)}
+.tab[aria-current="page"]{color:var(--tp);font-weight:700}
+
+.ic{width:var(--s,20px);height:var(--s,20px);flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+h2{font-size:16px;font-weight:700;margin:0}
+.t-cap{font-size:11px;color:var(--ts)}
+.t-sm{font-size:13px;color:var(--ts)}
+.t-acc{font-size:13px;font-weight:500;color:var(--tp)}
+.card{background:var(--muted);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.card.line{background:var(--card);border:1px solid var(--border)}
+.card.inv{background:var(--inv);color:var(--on-inv)}
+.card.inv .m{color:var(--on-inv-m)}
+.card.inv hr{border:0;border-top:1px solid var(--on-inv-m);opacity:.5;margin:4px 0;width:100%}
+.row{display:flex;align-items:center;gap:12px;background:var(--muted);border-radius:12px;padding:16px;width:100%}
+button.row:hover,button.card:hover{filter:brightness(.97)}
+.row .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.row b{font-size:15px}
+.btn{height:48px;border-radius:10px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;width:100%;text-align:center}
+.btn.primary{background:var(--inv);color:var(--on-inv)}
+.btn.secondary{background:var(--card);border:1px solid var(--bstrong)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.link-c{display:block;text-align:center;font-weight:500;color:var(--ts);padding:4px 0 8px;width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border-radius:999px;padding:5px 11px;font-size:12px;border:1px solid var(--border);background:var(--card)}
+.chip[aria-pressed="true"]{background:var(--inv);color:var(--on-inv);border-color:var(--inv)}
+.tag{border-radius:6px;padding:5px 10px;font-size:12px;background:var(--muted)}
+.ph{background:var(--ph);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--ts);font-size:13px;font-weight:500;overflow:hidden;position:relative;text-align:center;padding:12px}
+.ph .ic{color:var(--icon-ph)}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.field label{font-size:13px;font-weight:500;color:var(--ts)}
+.input{border:1px solid var(--border);background:var(--card);border-radius:10px;padding:12px 14px;font-size:15px;width:100%;min-width:0}
+.input::placeholder{color:var(--ts)}
+textarea.input{min-height:110px;resize:vertical}
+.cb{width:22px;height:22px;border-radius:6px;border:1.5px solid var(--bstrong);display:grid;place-items:center;flex:none;background:var(--card)}
+.cb .ic{opacity:0}
+[aria-checked="true"] > .cb{background:var(--inv);border-color:var(--inv);color:var(--on-inv)}
+[aria-checked="true"] > .cb .ic{opacity:1}
+.agree{display:flex;align-items:center;gap:10px;width:100%}
+.agree span.l{flex:1;min-width:0}
+.badge{width:22px;height:22px;border-radius:11px;background:var(--inv);color:var(--on-inv);font-size:12px;font-weight:700;display:grid;place-items:center;flex:none}
+.step{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+.opt{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;width:100%}
+.opt[aria-checked="true"]{border-color:var(--bstrong)}
+.opt .ic{opacity:0}
+.opt[aria-checked="true"] .ic{opacity:1}
+.date{background:var(--muted);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;align-items:center;font-variant-numeric:tabular-nums}
+.thumb{width:64px;height:64px;border-radius:8px;background:var(--ph);display:grid;place-items:center;flex:none;overflow:hidden;color:var(--icon-ph)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.logo{width:72px;height:72px;border-radius:18px;background:var(--inv);color:var(--on-inv);display:grid;place-items:center}
+.lot{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.lot:last-child{border-bottom:0}
+.lot .fee{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:var(--inv);color:var(--on-inv);padding:10px 16px;border-radius:999px;font-size:13px;white-space:nowrap;z-index:5;transition:opacity .2s}
+.toast[hidden]{display:none!important}
+.big{font-size:28px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+.hero{font-size:30px;font-weight:700;line-height:1.35;letter-spacing:-0.02em;margin:0;text-wrap:balance}
+.err{font-size:12px;color:var(--ts)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.body>*{flex-shrink:0}
+.body>.spacer{flex-shrink:1}
+.mapbox{position:relative;height:280px;border-radius:12px;overflow:hidden;background:var(--muted);border:1px solid var(--border);flex:none}
+.mapcanvas{position:absolute;inset:0}
+.mapcanvas svg{width:100%;height:100%;display:block;background:var(--card)}
+.mapcanvas .grid{stroke:var(--border);stroke-width:2}
+.mapcanvas .rail{stroke:var(--mid);stroke-width:14;stroke-dasharray:40 24}
+.mapcanvas .domeshape{fill:var(--ph);stroke:var(--inv);stroke-width:6}
+.mapcanvas .pt{cursor:pointer}
+.mapcanvas .pt circle{fill:var(--card);stroke:var(--inv);stroke-width:8}
+.mapcanvas .pt.subway circle{fill:var(--inv)}
+.mapcanvas .pt.dome circle{fill:var(--inv)}
+.mapcanvas .pt.on circle{fill:var(--card);stroke-width:16}
+.mapcanvas .pt.on text{text-decoration:underline}
+.mapcanvas .pt text{fill:var(--tp);font-weight:700;font-family:var(--font);paint-order:stroke;stroke:var(--card);stroke-width:10px}
+.mapcanvas .cap{fill:var(--ts);font-family:var(--font)}
+.mapnote{position:absolute;left:8px;right:8px;bottom:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--ts)}
+.mk{transform:translate(-50%,-50%);background:#fafafa;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:999px;padding:3px 9px;font:700 12px/1.3 "Noto Sans KR",sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.mk-subway,.mk-dome,.on>.mk{background:#0a0a0a;color:#fafafa}
+.on>.mk{outline:3px solid #fafafa;outline-offset:-1px}
+.focus{gap:6px}
+.stage3d{position:relative;height:270px;border-radius:12px;overflow:hidden;background:#121212;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
+.stage3d canvas{display:block;width:100%;height:100%;cursor:grab}
+.stage3d .ov{position:absolute;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+.ovb{background:rgba(250,250,250,.92);color:#0a0a0a;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500}
+.ovb[aria-pressed="true"]{background:#0a0a0a;color:#fafafa;box-shadow:0 0 0 1px rgba(250,250,250,.5)}
+.stage3d .msg{position:absolute;inset:0;display:grid;place-items:center;color:#a3a3a3;font-size:13px;text-align:center;padding:20px}
+.map{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px}
+.map svg{width:100%;height:auto;display:block}
+.map .sec{cursor:pointer;stroke:var(--card);stroke-width:.6}
+.map .c0{fill:var(--muted)}
+.map .c1{fill:var(--ph)}
+.map .c2{fill:var(--mid)}
+.map .sel{fill:var(--inv)}
+.map .dim{opacity:.32}
+.map .mine{stroke:var(--inv);stroke-width:1.2;stroke-dasharray:0}
+.map text{font-family:var(--font);pointer-events:none}
+.map .lab{fill:var(--tp);font-weight:700}
+.map .lab.on{fill:var(--on-inv)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--ts)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--muted);border-radius:10px;padding:4px;gap:4px}
+.seg button{padding:8px;border-radius:8px;text-align:center;font-weight:500;color:var(--ts)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--tp);font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid2 .ph{aspect-ratio:4/3;max-width:100%}
+.stars{display:flex;gap:4px}
+.stars button{font-size:26px;line-height:1;color:var(--ph);padding:2px}
+.stars button[aria-pressed="true"]{color:var(--tp)}
+.status{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--ph)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.kv dt{color:var(--ts)}
+.kv dd{margin:0;font-weight:500;font-variant-numeric:tabular-nums}
+.range{width:100%;accent-color:var(--inv)}
+.consent{display:flex;gap:10px;align-items:flex-start;width:100%;font-size:13px}
+</style>
+
+<script src="config.js"></script>
+</head>
+<body>
+<div class="app" id="app" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{
+const ICONS={
+ 'chevron-left':'<path d="m15 18-6-6 6-6"/>','chevron-right':'<path d="m9 18 6-6-6-6"/>','chevron-down':'<path d="m6 9 6 6 6-6"/>',
+ bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+ ticket:'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
+ image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+ pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+ check:'<path d="M20 6 9 17l-5-5"/>',
+ eye:'<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+ train:'<rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M12 3v8"/><path d="m8 19-2 3"/><path d="m18 22-2-3"/>',
+ bus:'<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+ car:'<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+ store:'<path d="M3 9 4.5 4h15L21 9"/><path d="M4 9v11h16V9"/><path d="M3 9h18"/><path d="M9 20v-6h6v6"/>',
+ box:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+ search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+ home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"/>',
+ chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+ toilet:'<circle cx="12" cy="5" r="2"/><path d="M9 22v-6H7l2-7h6l2 7h-2v6"/>'
+};
+const ic=(n,s=20)=>`<svg class="ic" style="--s:${s}px" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- data (예시 값 포함) ---------- */
+const SHOWS=[
+ {id:'K',name:'2026 KOREA GRAND MUSIC AWARD',date:'11/8',dow:'일',start:'17:00',open:'16:00',end:'21:30',seller:'NOL 티켓',done:true,real:true},
+ {id:'A',name:'[공연명 A]',date:'11/22',dow:'토',start:'18:00',open:'16:30',end:'21:20',seller:'NOL 티켓'},
+ {id:'B',name:'[공연명 B]',date:'11/29',dow:'토',start:'17:00',open:'15:30',end:'20:10',seller:'티켓링크'}
+];
+const VENUES={
+ gocheok:{name:'고척스카이돔',area:'서울 구로구 경인로 430, 관람석 16,601석',type:'지정석, 플로어',ready:true},
+ rolling:{name:'홍대 롤링홀',area:'서울 마포구 합정동, 최대 약 500명',type:'스탠딩',ready:'demo'},
+ olympic:{name:'올림픽홀',area:'서울 송파구',ready:false},
+ yes24:{name:'YES24 라이브홀',area:'서울 광진구',ready:false}
+};
+const ZONES={
+ '311':{tags:['측면','전광판 잘 보임'],reviews:[{n:'[닉네임]',t:'무대가 비스듬하지만\n전광판이 정면이라 편했어요'}]},
+ '312':{tags:['무대 정면','전광판 잘 보임','단차 높음'],reviews:[{n:'[닉네임]',t:'돌출 무대까지 잘 보여요.\n단차가 높아 앞사람에 안 가려요'},{n:'[닉네임]',t:'전광판은 잘 보이는데\n본무대는 작게 보여요'}]},
+ '313':{tags:['측면','시야 방해 있음'],reviews:[]}
+};
+const STAND={
+ '앞쪽':{tags:['무대와 가까움','앞사람에 가려짐'],reviews:[{n:'[닉네임]',h:'160cm',t:'앞쪽은 무대가 가깝지만\n앞사람 키에 따라 가려질 때가 있어요'}]},
+ '가운데':{tags:['음향 좋음'],reviews:[{n:'[닉네임]',h:'172cm',t:'가운데 뒤쪽이 음향이 가장 좋았어요'}]},
+ '뒤쪽':{tags:['단상 있음','이동 편함'],reviews:[]}
+};
+const LOTS=[ /* 출처: 서울시설공단 고척스카이돔 주차 안내 */
+ {n:'고척산업용품종합상가',d:'약 1,000면',f:'30분 1,000원'},
+ {n:'중앙유통단지',d:'약 4,000면, 현금만',f:'30분 1,000원'},
+ {n:'구로기계공구상가',d:'약 4,000면',f:'30분 1,000원'},
+ {n:'동양미래대학교',d:'약 320면, 휴일 08:00~23:00만',f:'30분 2,000원'},
+ {n:'생각공장 구로',d:'약 950면',f:'30분 3,000원'}
+];
+const SHOPS=[
+ {n:'[식당 A]',k:'한식',h:'23:00까지',after:true},
+ {n:'[카페 B]',k:'카페',h:'22:00까지',after:true},
+ {n:'[식당 C]',k:'분식',h:'20:00까지',after:false},
+ {n:'[편의점 D]',k:'편의점',h:'24시간',after:true}
+];
+const SEED_POSTS=[
+ {seat:'3층 312구역 F열',t:'돌출 무대까지 잘 보여요',n:'[닉네임]'},
+ {seat:'플로어 B구역',t:'앞사람 휴대폰에 가려질 때가 있어요',n:'[닉네임]'},
+ {seat:'2층 205구역 C열',t:'음향이 가장 깔끔했어요',n:'[닉네임]'}
+];
+
+/* ---------- 공연장 3D 모형 (Three.js, 예시 치수) ---------- */
+const PI=Math.PI;
+/* 실측 기준: 홈~중앙 펜스 122m, 좌우 펜스 99m, 지붕 높이 67.59m (서울시 발표). 원점=마운드 근처, 홈플레이트 z=+28, 외야=-z */
+const G={secs:20,arc:[5*PI/6,4*PI/3],steps:6,stepR:1.7,stepH:0.9,home:28,roofH:67.6,
+ floors:[{f:1,r0:46,y0:1.2},{f:2,r0:58,y0:9},{f:3,r0:70,y0:17},{f:4,r0:82,y0:25}],
+ stage:{z:-84,w:40,d:12,h:2.5},
+ ground:[{"id": "FA", "name": "플로어 A", "x": -16, "z": -70, "w": 13, "d": 13}, {"id": "FB", "name": "플로어 B", "x": 0, "z": -70, "w": 13, "d": 13}, {"id": "FC", "name": "플로어 C", "x": 16, "z": -70, "w": 13, "d": 13}, {"id": "FD", "name": "플로어 D", "x": -16, "z": -54, "w": 13, "d": 13}, {"id": "FE", "name": "플로어 E", "x": 0, "z": -54, "w": 13, "d": 13}, {"id": "FF", "name": "플로어 F", "x": 16, "z": -54, "w": 13, "d": 13}, {"id": "FG", "name": "플로어 G", "x": -16, "z": -38, "w": 13, "d": 13}, {"id": "FH", "name": "플로어 H", "x": 0, "z": -38, "w": 13, "d": 13}, {"id": "FI", "name": "플로어 I", "x": 16, "z": -38, "w": 13, "d": 13}, {"id": "FJ", "name": "플로어 J", "x": -16, "z": -22, "w": 13, "d": 13}, {"id": "FK", "name": "플로어 K", "x": 0, "z": -22, "w": 13, "d": 13}, {"id": "FL", "name": "플로어 L", "x": 16, "z": -22, "w": 13, "d": 13}]};
+const H={w:14,d:22,h:6.5,stage:{z:-9.5,w:11,d:3,h:0.9},zones:[{id:'앞쪽',z0:-8,z1:-3.5},{id:'가운데',z0:-3.5,z1:2.5},{id:'뒤쪽',z0:2.5,z1:7.5}]};
+const P3=(r,phi,y)=>[r*Math.cos(phi),y,-r*Math.sin(phi)];
+const secMid=i=>G.arc[0]+(i+0.5)*G.arc[1]/G.secs;
+function parseSec(id){id=String(id);const g=G.ground.find(b=>b.id===id);if(g)return {ground:g};
+ const n=parseInt(id,10);const f=Math.floor(n/100),i=n%100-1;if(f>=1&&f<=4&&i>=0&&i<G.secs)return {f,i};return null;}
+function secLabel(id){if(H.zones.some(z=>z.id===id))return `스탠딩 ${id}`;const p=parseSec(id);if(!p)return id;return p.ground?p.ground.name:`${p.f}층 ${id}구역`;}
+function rowStep(row){if(!row)return 3;const c=String(row).toUpperCase().charCodeAt(0)-65;return Math.max(0,Math.min(G.steps-1,Math.floor(c/4)));}
+function seatPose(venue,id,height=1.65,row=null){
+ if(venue==='rolling'){const z=H.zones.find(z=>z.id===id)||H.zones[0];return {pos:[0,height-0.12,(z.z0+z.z1)/2],target:[0,2.3,H.stage.z]};}
+ const p=parseSec(id);const tgt=[0,8,G.stage.z-4];
+ if(!p)return {pos:[0,40,60],target:tgt};
+ if(p.ground){const gx=p.ground.x===0?5.5:p.ground.x;return {pos:[gx,1.6,p.ground.z+5.5],target:[0,4,G.stage.z-6]};}
+ const F=G.floors[p.f-1],k=row==null?3:rowStep(row),r=F.r0+(k+0.5)*G.stepR;
+ return {pos:P3(r,secMid(p.i),F.y0+(k+1)*G.stepH+1.15),target:tgt};}
+function stageDist(venue,id,row=null){const p=seatPose(venue,id,1.65,row).pos;const s=venue==='rolling'?[0,H.stage.h,H.stage.z+H.stage.d/2]:[0,G.stage.h,G.stage.z+G.stage.d/2];return Math.round(Math.hypot(p[0]-s[0],p[1]-s[1],p[2]-s[2]));}
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+let R3=null;
+function disposeR3(){if(R3){try{R3.dispose();}catch(e){}R3=null;}if(typeof disposeMap==='function')disposeMap();}
+const has3D=()=>!!window.THREE;
+
+function lam(c,o={}){return new THREE.MeshLambertMaterial(Object.assign({color:c,side:THREE.DoubleSide},o));}
+function lights(scene){scene.add(new THREE.HemisphereLight(0xffffff,0x3a3a3a,0.9));const d=new THREE.DirectionalLight(0xffffff,0.5);d.position.set(30,90,50);scene.add(d);}
+function crowd(scene,areas,seed,{gap=0.8,hmin=1.5,hmax=1.85,avoid=null,y=0}={}){
+ const R=rng(seed);const pts=[];
+ for(const a of areas){for(let x=a.x0+gap/2;x<a.x1;x+=gap)for(let z=a.z0+gap/2;z<a.z1;z+=gap){const px=x+(R()-.5)*gap*.4,pz=z+(R()-.5)*gap*.4;if(avoid&&Math.hypot(px-avoid[0],pz-avoid[2])<1.6)continue;pts.push([px,pz,hmin+R()*(hmax-hmin)]);}}
+ const im=new THREE.InstancedMesh(new THREE.BoxGeometry(0.34,1,0.22),lam(0x2a2a2a),pts.length);
+ const o=new THREE.Object3D();pts.forEach((p,i)=>{o.position.set(p[0],y+p[2]/2,p[1]);o.scale.set(1,p[2],1);o.updateMatrix();im.setMatrixAt(i,o.matrix);});
+ scene.add(im);return im;}
+function screenMat(){return new THREE.MeshBasicMaterial({color:0xe9e9e9,side:THREE.DoubleSide});}
+function label(text,{dark=false,w=128}={}){
+ const c=document.createElement('canvas');c.width=w*2;c.height=96;const x=c.getContext('2d');
+ x.fillStyle=dark?'#0a0a0a':'#fafafa';const r=40;x.beginPath();x.moveTo(r,4);x.arcTo(c.width-4,4,c.width-4,92,r);x.arcTo(c.width-4,92,4,92,r);x.arcTo(4,92,4,4,r);x.arcTo(4,4,c.width-4,4,r);x.fill();
+ x.fillStyle=dark?'#fafafa':'#0a0a0a';x.font='700 44px "Noto Sans KR", sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(text,c.width/2,50);
+ const t=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true}));s.renderOrder=10;s.userData.aspect=c.width/c.height;return s;}
+
+function buildBowl(scene,{hi=null,avoid=null}={}){
+ lights(scene);
+ const field=new THREE.Mesh(new THREE.CircleGeometry(100,64),lam(0x343434));field.rotation.x=-PI/2;scene.add(field);
+ const dome=new THREE.Mesh(new THREE.SphereGeometry(106,48,16,0,PI*2,0,PI/2),new THREE.MeshBasicMaterial({color:0x1b1b1b,side:THREE.BackSide}));dome.scale.y=G.roofH/106;scene.add(dome);
+ const wire=new THREE.Mesh(new THREE.SphereGeometry(105.5,24,8,0,PI*2,0,PI/2),new THREE.MeshBasicMaterial({color:0x2e2e2e,wireframe:true}));wire.scale.y=G.roofH/105.5;
+ const turf=new THREE.Mesh(new THREE.CircleGeometry(99,48,PI*1.25,PI*0.5),lam(0x2f3a30));turf.rotation.x=-PI/2;turf.position.set(0,0.015,G.home);scene.add(turf);scene.add(wire);
+ const S=G.stage;const st=new THREE.Mesh(new THREE.BoxGeometry(S.w,S.h,S.d),lam(0x2a2a2a));st.position.set(0,S.h/2,S.z);scene.add(st);
+ const back=new THREE.Mesh(new THREE.PlaneGeometry(32,13),screenMat());back.position.set(0,12,S.z-S.d/2-0.5);scene.add(back);
+ for(const sx of [-27,27]){const sc=new THREE.Mesh(new THREE.PlaneGeometry(10,6.5),screenMat());sc.position.set(sx,13,S.z-2);scene.add(sc);}
+ const tp=new THREE.Mesh(new THREE.BoxGeometry(6,S.h,30),lam(0x2a2a2a));tp.position.set(0,S.h/2,S.z+S.d/2+15);scene.add(tp);
+ const truss=new THREE.Mesh(new THREE.BoxGeometry(44,0.6,0.6),lam(0x555555));truss.position.set(0,20,S.z+2);scene.add(truss);
+ const secMats={},floorObjs={1:[],2:[],3:[],4:[]};
+ for(const b of G.ground){const m=lam(hi===b.id?0xf0f0f0:0x4a4a4a,{transparent:true});secMats[b.id]=[m];const pl=new THREE.Mesh(new THREE.PlaneGeometry(b.w,b.d),m);pl.rotation.x=-PI/2;pl.position.set(b.x,0.03,b.z);scene.add(pl);floorObjs[1].push(pl);}
+ crowd(scene,G.ground.map(b=>({x0:b.x-b.w/2,x1:b.x+b.w/2,z0:b.z-b.d/2,z1:b.z+b.d/2})).flatMap(a=>a.x0<3&&a.x1>-3&&a.z0<-48?[{...a,x1:-3.5},{...a,x0:3.5}]:[a]),7,{avoid});
+ const [a0,al]=G.arc;
+ for(const F of G.floors){
+  const faceH=F.f===1?F.y0+0.6:2.6;
+  const face=new THREE.Mesh(new THREE.CylinderGeometry(F.r0,F.r0,faceH,96,1,true,a0+PI/2,al),lam(0x2b2b2b,{transparent:true}));face.position.y=F.y0+G.stepH-faceH/2+0.3;scene.add(face);floorObjs[F.f].push(face);
+  for(let k=0;k<G.steps;k++){const r=F.r0+k*G.stepR,y=F.y0+k*G.stepH;
+   const riser=new THREE.Mesh(new THREE.CylinderGeometry(r,r,G.stepH,96,1,true,a0+PI/2,al),lam(0x3f3f3f,{transparent:true}));riser.position.y=y+G.stepH/2;scene.add(riser);floorObjs[F.f].push(riser);}
+  for(let i=0;i<G.secs;i++){const id=String(F.f*100+i+1);const sel=hi===id;
+   const m=lam(sel?0xb8b8b8:(i%2?0x707070:0x7b7b7b),{transparent:true});secMats[id]=[m];
+   const a=a0+i*al/G.secs,len=al/G.secs-0.006;
+   for(let k=0;k<G.steps;k++){const r=F.r0+k*G.stepR,y=F.y0+(k+1)*G.stepH;
+    const tr=new THREE.Mesh(new THREE.RingGeometry(r,r+G.stepR,6,1,a,len),m);tr.rotation.x=-PI/2;tr.position.y=y;tr.userData.floor=F.f;scene.add(tr);floorObjs[F.f].push(tr);}}}
+ return {secMats,floorObjs};}
+
+function buildHall(scene,{hi=null,avoid=null}={}){
+ lights(scene);
+ const room=new THREE.Mesh(new THREE.BoxGeometry(H.w,H.h,H.d),lam(0x222222,{side:THREE.BackSide}));room.position.y=H.h/2;scene.add(room);
+ const fl=new THREE.Mesh(new THREE.PlaneGeometry(H.w,H.d),lam(0x3a3a3a));fl.rotation.x=-PI/2;fl.position.y=0.01;scene.add(fl);
+ const S=H.stage;const st=new THREE.Mesh(new THREE.BoxGeometry(S.w,S.h,S.d),lam(0x2a2a2a));st.position.set(0,S.h/2,S.z);scene.add(st);
+ const sc=new THREE.Mesh(new THREE.PlaneGeometry(9,3.6),screenMat());sc.position.set(0,4.2,S.z-S.d/2+0.05);scene.add(sc);
+ for(const sx of [-5.2,5.2]){const sp=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.4,1),lam(0x111111));sp.position.set(sx,S.h+1.2,S.z+1);scene.add(sp);}
+ const secMats={};
+ for(const z of H.zones){const m=lam(hi===z.id?0xdcdcdc:0x4a4a4a,{transparent:true});secMats[z.id]=[m];const pl=new THREE.Mesh(new THREE.PlaneGeometry(H.w-1,z.z1-z.z0-0.1),m);pl.rotation.x=-PI/2;pl.position.set(0,0.03,(z.z0+z.z1)/2);scene.add(pl);}
+ crowd(scene,[{x0:-6,x1:6,z0:-7.6,z1:7}],11,{gap:0.85,hmin:1.5,hmax:1.85,avoid});
+ const bar=new THREE.Mesh(new THREE.BoxGeometry(4,1.1,1),lam(0x555555));bar.position.set(4.5,0.55,9.6);scene.add(bar);
+ return {secMats,floorObjs:{}};}
+
+/* 시야 탭: 좌석 눈높이 카메라 */
+function mountSeatView(el,{venue,sec,height=1.65,row=null}){
+ if(!has3D()){el.innerHTML='<div class="msg">3D 모형을 불러오지 못했어요. 네트워크를 확인해 주세요</div>';return null;}
+ const W=el.clientWidth||350,Hh=el.clientHeight||270;
+ const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));renderer.setSize(W,Hh);el.prepend(renderer.domElement);
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x121212);
+ const camera=new THREE.PerspectiveCamera(62,W/Hh,0.05,600);
+ let pose=seatPose(venue,sec,height,row);
+ (venue==='rolling'?buildHall:buildBowl)(scene,{hi:sec,avoid:pose.pos});
+ let yaw=0,pitch=0,fov=62;const up=new THREE.Vector3(0,1,0);
+ function draw(){camera.position.set(...pose.pos);camera.lookAt(...pose.target);camera.rotateOnWorldAxis(up,yaw);camera.rotateX(pitch);camera.fov=fov;camera.updateProjectionMatrix();renderer.render(scene,camera);}
+ const pts=new Map();let pinch0=0,fov0=fov;
+ const cv=renderer.domElement;
+ const down=e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===2){const [a,b]=[...pts.values()];pinch0=Math.hypot(a[0]-b[0],a[1]-b[1]);fov0=fov;}};
+ const move=e=>{if(!pts.has(e.pointerId))return;const p=pts.get(e.pointerId);
+  if(pts.size===2){pts.set(e.pointerId,[e.clientX,e.clientY]);const [a,b]=[...pts.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);fov=Math.max(22,Math.min(75,fov0*pinch0/Math.max(d,1)));draw();return;}
+  yaw=Math.max(-1.3,Math.min(1.3,yaw+(e.clientX-p[0])*0.005));pitch=Math.max(-0.55,Math.min(0.55,pitch+(e.clientY-p[1])*0.004));pts.set(e.pointerId,[e.clientX,e.clientY]);draw();};
+ const upE=e=>{pts.delete(e.pointerId);};
+ const wheel=e=>{e.preventDefault();fov=Math.max(22,Math.min(75,fov+e.deltaY*0.03));draw();};
+ cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);cv.addEventListener('pointerup',upE);cv.addEventListener('pointercancel',upE);cv.addEventListener('wheel',wheel,{passive:false});
+ const ro=new ResizeObserver(()=>{const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;draw();});ro.observe(el);
+ draw();
+ return {draw,reset(){yaw=0;pitch=0;fov=62;draw();},setHeight(h){pose=seatPose(venue,sec,h,row);draw();},
+  dispose(){ro.disconnect();renderer.dispose();renderer.forceContextLoss&&renderer.forceContextLoss();scene.traverse(o=>{o.geometry&&o.geometry.dispose();});}};}
+
+/* 공연장 탭: 시설 구조 지도 (돌려 보기 + 표시 누르기) */
+function venueMarkers(venue){
+ const out=[];
+ if(venue==='rolling'){
+  out.push({label:'입구',pos:[0,2.2,10.4],floor:0,title:'입구',desc:'스탠딩은 보통 입장 번호 순서로 들어와요. 실제 구조와 위치는 공연장 확인 후 입력'});
+  out.push({label:'보관',pos:[-5,2,9.2],floor:0,title:'물품보관',desc:'공연별 공지 기준으로 안내해요. 위치는 예시'});
+  out.push({label:'바',pos:[4.5,2.2,9.6],floor:0,title:'바',desc:'음료 구매. 위치는 예시'});
+  out.push({label:'WC',pos:[-6,2,5],floor:0,title:'화장실',desc:'위치는 예시'});
+  out.push({label:'무대',pos:[0,3.8,-10.5],floor:0,title:'무대',desc:'스탠딩 앞쪽부터 번호 순서로 채워져요'});
+  return out;}
+ const home=3*PI/2;
+ const gate=(g,phi,side,desc)=>out.push({label:g,pos:P3(97,phi,3),floor:0,kind:'gate',title:`${g} 출입문 (${side})`,desc});
+ gate('A',home-0.12,'홈','홈플레이트 뒤쪽 홈 출입문 (시설현황 배치도 기준). 정확한 위치는 운영자 입력');gate('B',home+0.12,'홈','홈플레이트 뒤쪽 홈 출입문 (시설현황 배치도 기준). 정확한 위치는 운영자 입력');
+ gate('D',PI+0.45,'원정, 3루 쪽','원정 출입문. 원정 더그아웃은 3루 쪽. 내야 매표소와 3루 쪽 광장이 가까워요');gate('E',PI+0.2,'원정, 3루 쪽','원정 출입문. 정확한 위치는 운영자 입력');
+ gate('F',PI/2-0.45,'외야','외야 출입문. 구일역 2번 출구에서 약 150m, 도보 약 3분 (서울시설공단 안내)');gate('G',PI/2+0.45,'외야','외야 출입문. 외야 매표소와 광장 쪽');
+ out.push({label:'구일역 2번 출구',pos:P3(118,PI/2-0.2,2),floor:0,title:'구일역 2번 출구 방향',desc:'외야 광장으로 바로 이어져요. 인천, 부천 방면은 개봉역(약 15분), 서울, 수원 방면은 구로역(약 20분)으로 걸어가면 덜 붐벼요 (서울시설공단 안내)',dark:true});
+ out.push({label:'매표소',pos:P3(104,PI/2+0.75,3),floor:0,title:'외야 매표소',desc:'외야 매표소 2곳, 내야 매표소 1곳 (시설현황 배치도 기준)'});
+ out.push({label:'EV',pos:P3(95,home+0.35,5),floor:0,title:'노약자, 장애인 엘리베이터',desc:'시설현황 배치도 기준 시설. 위치는 예시'});
+ for(const F of G.floors){const top=F.y0+G.steps*G.stepH+2,rb=F.r0+G.steps*G.stepR+2;
+  [home-0.45,home+0.45].forEach(p=>out.push({label:'WC',pos:P3(rb,p,top),floor:F.f,title:`${F.f}층 화장실`,desc:'위치는 예시'}));
+  if(F.f>=2)[home-0.9,home+0.9].forEach(p=>out.push({label:'매점',pos:P3(rb,p,top+1),floor:F.f,title:`${F.f}층 매점`,desc:'매점은 2, 3, 4층에 있어요 (시설현황 기준). 위치는 예시'}));
+  if(F.f===2||F.f===3)out.push({label:'아기',pos:P3(rb,home,top+1),floor:F.f,title:`${F.f}층 아기쉼터`,desc:'아기쉼터는 2, 3층에 있어요 (시설현황 기준). 위치는 예시'});}
+ return out;}
+function mountVenueMap(el,{venue,mySec=null,onPick}){
+ if(!has3D()){el.innerHTML='<div class="msg">3D 모형을 불러오지 못했어요. 네트워크를 확인해 주세요</div>';return null;}
+ const W=el.clientWidth||350,Hh=el.clientHeight||270;
+ const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));renderer.setSize(W,Hh);el.prepend(renderer.domElement);
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x121212);
+ const camera=new THREE.PerspectiveCamera(45,W/Hh,0.1,1200);
+ const hall=venue==='rolling';
+ const model=(hall?buildHall:buildBowl)(scene,{hi:mySec});
+ const marks=venueMarkers(venue);
+ if(mySec){const p=seatPose(venue,mySec).pos;marks.push({label:'내 좌석',pos:[p[0],p[1]+(hall?1.4:3),p[2]],floor:hall?0:(parseSec(mySec)||{}).f||0,title:`내 좌석 ${secLabel(mySec)}`,desc:'등록한 티켓 기준이에요',dark:true});}
+ const sc=hall?1.6:10;
+ const sprites=marks.map(m=>{const s=label(m.label,{dark:!!m.dark});s.position.set(...m.pos);s.scale.set(sc*s.userData.aspect*0.75,sc*0.75,1);s.userData.m=m;scene.add(s);return s;});
+ const c=hall?[0,1.5,0]:[0,10,-5];let az=hall?0.6:0.5,elv=hall?0.75:0.62,dist=hall?27:240;
+ function draw(){const x=c[0]+dist*Math.cos(elv)*Math.sin(az),y=c[1]+dist*Math.sin(elv),z=c[2]+dist*Math.cos(elv)*Math.cos(az);camera.position.set(x,y,z);camera.lookAt(...c);renderer.render(scene,camera);}
+ const pts=new Map();let moved=0,pinch0=0,dist0=dist;
+ const cv=renderer.domElement;const ray=new THREE.Raycaster();const v2=new THREE.Vector2();
+ cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);moved=0;if(pts.size===2){const [a,b]=[...pts.values()];pinch0=Math.hypot(a[0]-b[0],a[1]-b[1]);dist0=dist;}});
+ cv.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const p=pts.get(e.pointerId);moved+=Math.abs(e.clientX-p[0])+Math.abs(e.clientY-p[1]);
+  if(pts.size===2){pts.set(e.pointerId,[e.clientX,e.clientY]);const [a,b]=[...pts.values()];dist=Math.max(hall?8:70,Math.min(hall?45:360,dist0*pinch0/Math.max(1,Math.hypot(a[0]-b[0],a[1]-b[1]))));draw();return;}
+  az-=(e.clientX-p[0])*0.008;elv=Math.max(0.12,Math.min(1.45,elv+(e.clientY-p[1])*0.006));pts.set(e.pointerId,[e.clientX,e.clientY]);draw();});
+ const end=e=>{const was=pts.has(e.pointerId);pts.delete(e.pointerId);if(!was||moved>6)return;
+  const r=cv.getBoundingClientRect();v2.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(v2,camera);
+  const hit=ray.intersectObjects(sprites.filter(s=>s.visible))[0];onPick&&onPick(hit?hit.object.userData.m:null);};
+ cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',e=>pts.delete(e.pointerId));
+ cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(hall?8:70,Math.min(hall?45:360,dist*(1+e.deltaY*0.001)));draw();},{passive:false});
+ const ro=new ResizeObserver(()=>{const w=el.clientWidth,h=el.clientHeight;if(!w||!h)return;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();draw();});ro.observe(el);
+ camera.aspect=W/Hh;camera.updateProjectionMatrix();draw();
+ return {draw,
+  setFloor(f){for(const [k,objs] of Object.entries(model.floorObjs)){const on=!f||+k===f;for(const o of objs){o.material.opacity=on?1:0.07;o.material.depthWrite=on;}}
+   for(const [id,ms] of Object.entries(model.secMats)){const p=parseSec(id);const fl=p?(p.ground?1:p.f):0;const on=!f||fl===f;ms.forEach(m=>{m.opacity=on?1:0.07;m.depthWrite=on;});}
+   sprites.forEach(s=>{const m=s.userData.m;s.visible=!f||m.floor===0||m.floor===f;});draw();},
+  dispose(){ro.disconnect();renderer.dispose();renderer.forceContextLoss&&renderer.forceContextLoss();scene.traverse(o=>{o.geometry&&o.geometry.dispose();o.material&&o.material.map&&o.material.map.dispose();});}};}
+
+/* 2D 좌석 구조도 (SVG) */
+const REV_POOL=['무대 정면은 아니지만\n전광판이 잘 보여요','단차가 있어서 앞사람에\n덜 가려요','무대가 멀어 망원경이 있으면 좋아요','측면이라 무대 뒤 장비가 조금 보여요','통로 쪽이라 드나들기 편해요','음향이 또렷하게 들려요'];
+function seedReviews(id){if(ZONES[id])return ZONES[id].reviews;if(STAND[id])return STAND[id].reviews;
+ let h=0;for(const ch of String(id))h=(h*31+ch.charCodeAt(0))>>>0;const R=rng(h);const x=R();const n=x<0.35?0:1+Math.floor(R()*6);
+ return Array.from({length:n},(_,k)=>({n:'[닉네임]',t:REV_POOL[Math.floor(R()*REV_POOL.length)]}));}
+function secTags(id){if(ZONES[id])return ZONES[id].tags;if(STAND[id])return STAND[id].tags;const p=parseSec(id);if(!p)return [];
+ if(p.ground)return p.ground.z<-60?['무대와 가까움','돌출무대 가까움','앞사람, 휴대폰에 가려질 수 있음']:['평지라 앞사람에 가려질 수 있음','전광판 보기 좋음'];
+ const t=[];if(p.i>=8&&p.i<=11)t.push('무대 정면');else if(p.i<=2||p.i>=17)t.push('측면','무대 안쪽 일부 안 보임');else t.push('비스듬한 정면');
+ if(p.f===1&&p.i>=6&&p.i<=13)t.push('그물 있음 (사진에 보임)');if(p.f>=3)t.push('전광판 잘 보임');if(p.f===4)t.push('높고 무대가 멀어요');if(p.f<=2)t.push('무대 가까움');return t;}
+function arcPath(r0,r1,a,b){const pt=(r,p)=>`${(r*Math.cos(p)).toFixed(2)} ${(-r*Math.sin(p)).toFixed(2)}`;return `M${pt(r1,a)}A${r1} ${r1} 0 0 0 ${pt(r1,b)}L${pt(r0,b)}A${r0} ${r0} 0 0 1 ${pt(r0,a)}Z`;}
+
+/* ---------- 지도: 네이버 지도 (config.js에 Client ID가 있고 등록된 주소일 때), 아니면 실제 좌표로 그린 약도 ---------- */
+const PLACES=[
+ {id:'dome',kind:'dome',name:'고척스카이돔',lat:37.498222,lng:126.867250,desc:'서울 구로구 경인로 430'},
+ {id:'guil',kind:'subway',name:'구일역 (1호선)',lat:37.49611,lng:126.86972,desc:'2번 출구에서 약 150m, 도보 약 3분. 공연 직후 가장 붐벼요'},
+ {id:'gaebong',kind:'subway',name:'개봉역 (1호선)',lat:37.49448,lng:126.85848,desc:'인천, 부천 방면. 도보 약 15분, 구일역보다 덜 붐벼요'},
+ {id:'guro',kind:'subway',name:'구로역 (1호선)',lat:37.50306,lng:126.88222,desc:'서울, 수원, 안양 방면. 도보 약 20분, 구일역보다 덜 붐벼요'},
+ {id:'bus1',kind:'bus',name:'동양미래대학 정류장',addr:'서울특별시 구로구 경인로 445',desc:'간선 160, 600, 660, 662 / 지선 5626, 5712, 6515, 6637, 6713 등'},
+ {id:'bus2',kind:'bus',name:'구로성심병원 정류장',addr:'서울특별시 구로구 경인로 427',desc:'간선 160, 600, 660, 662 / 좌석 301, 320, 5200 / 심야 N16 등'},
+ {id:'lot0',kind:'parking',name:'고척산업용품종합상가',desc:'약 1,000면, 30분 1,000원'},
+ {id:'lot1',kind:'parking',name:'중앙유통단지',desc:'약 4,000면, 30분 1,000원, 현금만'},
+ {id:'lot2',kind:'parking',name:'구로기계공구상가',desc:'약 4,000면, 30분 1,000원'},
+ {id:'lot3',kind:'parking',name:'동양미래대학교',addr:'서울특별시 구로구 경인로 445',desc:'약 320면, 30분 2,000원, 휴일 08:00~23:00만'},
+ {id:'lot4',kind:'parking',name:'생각공장 구로',desc:'약 950면, 30분 3,000원'}
+];
+const KIND={dome:'공연장',subway:'지하철',bus:'버스',parking:'주차',food:'상권'};
+const shortN=n=>n.replace(' (1호선)','');
+const placeById=id=>PLACES.find(p=>p.id===id);
+const naverLink=q=>`https://map.naver.com/p/search/${encodeURIComponent(q)}`;
+let NAV={state:'idle',why:'',waiters:[]};
+function loadNaver(){
+ const cfg=window.APP_CONFIG||{};
+ if(NAV.state==='ready')return Promise.resolve(true);
+ if(NAV.state==='fail')return Promise.resolve(false);
+ if(!cfg.NAVER_CLIENT_ID){NAV.state='fail';NAV.why='이 미리보기 화면에서는 네이버 지도를 쓸 수 없어 실제 좌표로 그렸어요. GitHub Pages 주소에서는 네이버 지도로 보여요';return Promise.resolve(false);}
+ return new Promise(res=>{NAV.waiters.push(res);if(NAV.state==='loading')return;NAV.state='loading';
+  const done=(ok,why='')=>{NAV.state=ok?'ready':'fail';NAV.why=why;NAV.waiters.splice(0).forEach(f=>f(ok));};
+  window.navermap_authFailure=()=>{const was=NAV.state;NAV.state='fail';NAV.why='네이버 지도 인증 실패: 네이버 클라우드 콘솔의 웹 서비스 URL에 이 주소가 등록됐는지, config.js의 NAVER_KEY_PARAM이 맞는지 확인해 주세요';if(was==='loading')done(false,NAV.why);else render();};
+  const sc=document.createElement('script');
+  sc.src=`https://oapi.map.naver.com/openapi/v3/maps.js?${cfg.NAVER_KEY_PARAM||'ncpKeyId'}=${encodeURIComponent(cfg.NAVER_CLIENT_ID)}&submodules=geocoder`;
+  sc.onload=()=>{if(window.naver&&naver.maps)done(true);else done(false,'네이버 지도 스크립트를 불러오지 못했어요');};
+  sc.onerror=()=>done(false,'네이버 지도 스크립트를 불러오지 못했어요 (이 화면에서는 외부 지도가 막혀 있을 수 있어요)');
+  document.head.appendChild(sc);
+  setTimeout(()=>{if(NAV.state==='loading')done(false,'네이버 지도 응답이 없어요');},8000);});}
+function geocodeAll(){if(!(window.naver&&naver.maps&&naver.maps.Service))return Promise.resolve();
+ return Promise.all(PLACES.filter(p=>p.addr&&p.lat==null).map(p=>new Promise(r=>{try{naver.maps.Service.geocode({query:p.addr},(st,resp)=>{try{const a=resp.v2.addresses[0];if(st===naver.maps.Service.Status.OK&&a){p.lat=+a.y;p.lng=+a.x;p.approx=true;}}catch(e){}r();});}catch(e){r();}})));}
+let MAPH=null;
+function disposeMap(){if(MAPH){try{MAPH.dispose();}catch(e){}MAPH=null;}}
+function focusHTML(p){if(!p)return '<span class="t-sm">목록이나 지도 표시를 누르면 위치와 설명이 나와요</span>';
+ return `<span style="display:flex;align-items:center;gap:8px"><span class="tag">${KIND[p.kind]||''}</span><b style="font-size:15px;flex:1;min-width:0">${esc(p.name)}</b></span><span class="t-sm">${esc(p.desc||'')}</span>${p.lat==null?'<span class="t-cap">정확한 위치는 아직 등록 전이에요. 네이버 지도 검색으로 확인해 주세요</span>':p.approx?'<span class="t-cap">건물 주소 기준 위치예요</span>':''}<a class="t-sm" style="color:var(--tp);font-weight:700" href="${naverLink(shortN(p.name))}" target="_blank" rel="noopener">네이버 지도에서 보기 ↗</a>`;}
+function mountMap(el,{kinds,focus=null,onFocus}){
+ const pick=()=>PLACES.filter(p=>(p.kind==='dome'||kinds.includes(p.kind))&&p.lat!=null);
+ let api={dispose(){},focus(){}};
+ const box=document.createElement('div');box.className='mapcanvas';el.appendChild(box);
+ const drawSketch=(why)=>{const pts=pick();const lat0=37.4985,lng0=126.8695,k=111000,c=Math.cos(lat0*PI/180);
+  const xy=p=>[(p.lng-lng0)*k*c,-(p.lat-lat0)*k];const all=pts.map(xy);const xs=all.map(a=>a[0]),ys=all.map(a=>a[1]);
+  const cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2,hw=Math.max(650,(Math.max(...xs)-Math.min(...xs))/2+180),hh=Math.max(420,(Math.max(...ys)-Math.min(...ys))/2+180);const x0=cx-hw,x1=cx+hw,y0=cy-hh,y1=cy+hh;
+  let s=`<svg viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="약도">`;
+  const fs=(x1-x0)/30;
+  for(let gx=Math.ceil(x0/250)*250;gx<x1;gx+=250)s+=`<line x1="${gx}" y1="${y0}" x2="${gx}" y2="${y1}" class="grid"/>`;
+  for(let gy=Math.ceil(y0/250)*250;gy<y1;gy+=250)s+=`<line x1="${x0}" y1="${gy}" x2="${x1}" y2="${gy}" class="grid"/>`;
+  const [ax,ay]=xy(placeById('gaebong')),[bx,by]=xy(placeById('guro'));s+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" class="rail"/>`;
+  const [dx,dy]=xy(placeById('dome'));s+=`<ellipse cx="${dx}" cy="${dy}" rx="${fs*2.2}" ry="${fs*1.8}" class="domeshape"/>`;
+  pts.forEach(p=>{const [x,y]=xy(p);const on=focus===p.id;s+=`<g class="pt ${p.kind} ${on?'on':''}" data-mfocus="${p.id}"><circle cx="${x}" cy="${y}" r="${fs*0.55}"/><text x="${x}" y="${y-fs*0.95}" text-anchor="middle" font-size="${fs*0.9}">${esc(shortN(p.name))}</text></g>`;});
+  s+=`<text x="${x1-fs*0.5}" y="${y1-fs*0.6}" text-anchor="end" font-size="${fs*0.7}" class="cap">250m 격자, 위가 북쪽</text></svg>`;
+  box.innerHTML=s+`<div class="mapnote">약도: ${esc(why||'')}</div>`;
+  api.focus=id=>{focus=id;drawSketch(why);};};
+ loadNaver().then(ok=>{if(!box.isConnected)return;
+  if(!ok){drawSketch(NAV.why);return;}
+  geocodeAll().then(()=>{if(!box.isConnected)return;
+   const map=new naver.maps.Map(box,{center:new naver.maps.LatLng(37.4982,126.8672),zoom:15,scaleControl:false,mapDataControl:false,logoControlOptions:{position:naver.maps.Position.BOTTOM_LEFT}});
+   const iw=new naver.maps.InfoWindow({content:'',borderWidth:0,backgroundColor:'transparent',disableAnchor:true,pixelOffset:new naver.maps.Point(0,-14)});
+   const marks={};
+   pick().forEach(p=>{const m=new naver.maps.Marker({position:new naver.maps.LatLng(p.lat,p.lng),map,icon:{content:`<div class="mk mk-${p.kind}">${esc(shortN(p.name))}</div>`,anchor:new naver.maps.Point(0,0)}});
+    naver.maps.Event.addListener(m,'click',()=>{api.focus(p.id);onFocus&&onFocus(p.id);});marks[p.id]=m;});
+   api.focus=id=>{const p=placeById(id);if(!p||p.lat==null)return;map.panTo(new naver.maps.LatLng(p.lat,p.lng));if(map.getZoom()<16)map.setZoom(16,true);
+    Object.entries(marks).forEach(([k,m])=>{const el=m.getElement&&m.getElement();if(el)el.classList.toggle('on',k===id);});};
+   if(focus)api.focus(focus);
+   api.dispose=()=>{try{map.destroy();}catch(e){}};});});
+ return {dispose(){api.dispose();},focus(id){focus=id;api.focus(id);}};}
+
+/* ---------- state ---------- */
+const KEY='gocheok-app-v1';
+let S={nick:'',joined:false,ticket:null,venue:'gocheok',posts:[],alarm:false};
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(S,JSON.parse(raw));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){try{localStorage.setItem(KEY,JSON.stringify({...S,posts:S.posts.map(p=>({...p,img:null}))}));}catch(e2){}}};
+S.posts=(S.posts||[]).map(p=>Object.assign({status:'공개',venue:'gocheok',sec:p.sec||p.zone},p,p.status==='검수 중'?{status:'공개'}:{}));
+let stack=[S.joined?'home':'start'];
+let ui={mset:'전체',mfocus:'guil',mapKinds:null,mapTitle:'',sec:null,floor:3,vmode:'3d',hgt:165,f3:0,rating:0,consent:false,_mount:null,zone:'312',stand:'앞쪽',vtab:'입장',ctab:'시야 후기',sel:'A',img:null,tags:new Set(['무대 정면']),agree:[true,true,true,false],q:'',reviewImg:null};
+
+const app=document.getElementById('app');
+const cur=()=>stack[stack.length-1];
+function go(v){stack.push(v);render();}
+function back(){if(stack.length>1)stack.pop();render();}
+function tabTo(v){stack=[v];render();}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,1800);}
+
+const show=()=>SHOWS.find(s=>s.id===(S.ticket?S.ticket.show:'A'));
+const V=()=>VENUES[S.venue];
+const standing=()=>S.venue==='rolling';
+const tSec=t=>{if(!t)return null;const z=String(t.zone).toUpperCase();if(/^[A-L]$/.test(z))return 'F'+z;return parseSec(z)?z:null;};
+const mySec=()=>S.venue==='gocheok'?tSec(S.ticket):null;
+
+/* ---------- pieces ---------- */
+const hdr=(title,{backBtn=false,venue=false,bell=false}={})=>`<header class="hdr${backBtn?' back':''}">
+ ${backBtn?`<button class="ibtn" data-act="back" aria-label="뒤로">${ic('chevron-left',26)}</button>`:''}
+ ${venue?`<button class="venue-btn" data-go="venue" aria-label="공연장 바꾸기, 지금 ${esc(title)}"><h1>${esc(title)}</h1>${ic('chevron-down',22)}</button>`:`<h1>${esc(title)}</h1>`}
+ ${bell?`<button class="ibtn" data-act="bell" aria-label="알림">${ic('bell',22)}</button>`:''}
+</header>`;
+const TABS=[['home','홈','home'],['sight','시야','eye'],['place','공연장','pin'],['move','이동','train'],['comm','커뮤니티','chat']];
+const tabbar=active=>`<nav class="tabbar" aria-label="주요 메뉴">${TABS.map(([v,l,i])=>`<button class="tab" data-tab="${v}" ${v===active?'aria-current="page"':''}>${ic(i,22)}<span>${l}</span></button>`).join('')}</nav>`;
+const row=(title,sub,icon,go)=>`<${go?'button':'div'} class="row" ${go?`data-go="${go}"`:''}>${icon?ic(icon,22):''}<span class="grow"><b>${esc(title)}</b>${sub?`<span class="t-sm">${esc(sub)}</span>`:''}</span>${go?ic('chevron-right',20):''}</${go?'button':'div'}>`;
+const chips=(list,cur,attr)=>`<div class="chips" role="group">${list.map(c=>`<button class="chip" data-${attr}="${esc(c)}" aria-pressed="${c===cur}">${esc(c)}</button>`).join('')}</div>`;
+const tags=list=>`<div class="chips">${list.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`;
+const nl=s=>esc(s).replace(/\n/g,'<br>');
+const addMin=(hm,m)=>{const [h,mm]=hm.split(':').map(Number);const t=h*60+mm+m;return `${String(Math.floor(t/60)%24).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;};
+function setFocus(id){ui.mfocus=id;const box=document.getElementById('mfocus');if(box)box.innerHTML=focusHTML(placeById(id));document.querySelectorAll('[data-mfocus].row').forEach(r=>{const on=r.dataset.mfocus===id;r.style.background=on?'var(--card)':'';r.style.border=on?'1px solid var(--bstrong)':'';});}
+const seatText=t=>`${t.floor} ${t.zone}구역 ${t.row}열 ${t.no}번`;
+
+/* ---------- screens ---------- */
+const SCREENS={
+start:()=>`<div class="body" style="padding-top:60px;gap:16px">
+  <div class="logo">${ic('ticket',34)}</div>
+  <span class="t-sm" style="font-weight:500">[앱 이름]</span>
+  <p class="hero">고척돔 공연,<br>티켓 하나로 끝까지</p>
+  <p class="t-sm" style="font-size:16px;margin:0">시야, 입장, 귀가까지<br>내 좌석 기준으로 안내해요</p>
+  <div class="spacer"></div>
+  <button class="btn primary" data-go="signup">카카오로 시작하기</button>
+  <button class="btn secondary" data-go="signup">이메일로 시작하기</button>
+  <button class="link-c" data-act="browse">먼저 둘러보기</button>
+ </div>`,
+
+signup:()=>{const all=ui.agree.every(Boolean);const ok=ui.agree[0]&&ui.agree[1]&&/^.{2,10}$/.test(S.nick.trim());
+ const items=['[필수] 서비스 이용약관','[필수] 개인정보 수집 및 이용','[선택] 위치 정보 (출입문, 길 안내)','[선택] 알림 (예매 오픈, 출발 시각)'];
+ return hdr('회원가입',{backBtn:true})+`<div class="body">
+  <h2 style="font-size:20px">닉네임을 정해 주세요</h2>
+  <div class="field"><label for="nick">닉네임</label><input id="nick" class="input" maxlength="10" placeholder="2~10자, 후기에 표시돼요" value="${esc(S.nick)}" autocomplete="nickname"></div>
+  <h2 style="font-size:15px">약관 동의</h2>
+  <div class="card" style="gap:14px">
+   <button class="agree" role="checkbox" aria-checked="${all}" data-agree="all"><span class="cb">${ic('check',14)}</span><b class="l">전체 동의</b></button>
+   <hr style="border:0;border-top:1px solid var(--border);margin:0;width:100%">
+   ${items.map((t,i)=>`<div class="agree" style="gap:10px"><button class="agree" style="flex:1" role="checkbox" aria-checked="${ui.agree[i]}" data-agree="${i}"><span class="cb">${ic('check',14)}</span><span class="l">${t}</span></button><span class="t-sm">보기</span></div>`).join('')}
+  </div>
+  <span class="t-cap" style="font-size:12px">선택 항목은 동의하지 않아도 가입할 수 있어요</span>
+  <div class="spacer"></div>
+  <button class="btn primary" data-act="join" ${ok?'':'disabled'}>가입 완료</button>
+ </div>`;},
+
+home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const list=standing()?[{name:'[공연명 C]',date:'11/21',dow:'금',start:'20:00',seller:'YES24 티켓'},{name:'[공연명 D]',date:'11/28',dow:'금',start:'19:30',seller:'NOL 티켓'}]:SHOWS;
+ let main;
+ if(t){main=`<div class="card inv" style="padding:20px;gap:6px">
+   <span class="m" style="font-size:12px;font-weight:700">관람 예정</span>
+   <span style="font-size:22px;font-weight:700">${esc(sh.name)}</span>
+   <span>${sh.date}(${sh.dow}) ${sh.start} 시작, ${sh.open} 입장</span><hr>
+   <span style="display:flex;align-items:center"><b style="flex:1;font-size:15px">${esc(seatText(t))}</b><span class="m" style="font-size:12px;font-weight:500">${t.verified?'인증 완료':'인증 대기'}</span></span>
+  </div>
+  <h2>오늘 할 일</h2>
+  ${row('내 자리 시야 보기',`${t.floor} ${t.zone}구역에서 본 무대 (3D)`,'eye','myseat')}
+  ${row('입장 출입문 확인','내 좌석 기준 추천 출입문','pin','place')}
+  ${row('귀가 안내',`구일역 도착 약 ${addMin(sh.end,23)}, 덜 붐비는 역도 안내`,'train','move')}
+  <div class="card line" style="padding:14px;gap:4px"><b style="font-size:13px">공연 당일 날씨</b><span class="t-sm">맑음, 저녁 8℃. 귀갓길 겉옷 챙기기</span><span class="t-cap">기상청 단기예보 (예시 값)</span></div>`;}
+ else{main=`<div class="card" style="padding:20px;gap:10px">${ic('ticket',28)}<b style="font-size:16px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b><span class="t-sm">티켓을 등록하면 내 좌석 기준으로<br>시야, 입장, 귀가를 안내해요</span><button class="btn primary" data-go="ticket">내 티켓 등록</button></div>`;}
+ return hdr(v.name,{venue:true,bell:true})+`<div class="body">
+  ${t?'<span class="t-cap">내 티켓의 공연장으로 홈이 자동으로 바뀌어요</span>':''}${standing()?'<span class="t-acc">확장 예시 화면이에요. 공연 목록은 예시 값</span>':''}
+  ${main}
+  <h2>이번 달 ${esc(v.name)} 공연</h2>
+  ${list.map(s=>`<div class="row" style="background:var(--card);border:1px solid var(--border);padding:14px;gap:14px;${s.done?'opacity:.7':''}"><span class="date"><b style="font-size:13px">${s.date}</b><span class="t-cap">${s.dow}</span></span><span class="grow"><b>${esc(s.name)}</b><span class="t-cap" style="font-size:12px">${s.start}~${s.end}, 예매처 ${esc(s.seller)}${s.real?'':' (예시)'}</span></span>${s.done?'<span class="tag">종료</span>':''}</div>`).join('')}
+  <span class="t-cap">공연 정보 출처: KOPIS 공연예술통합전산망</span>
+ </div>`+tabbar('home');},
+
+ticket:()=>{
+ const d=S._draft||{floor:'3층',zone:'312',row:'F',no:'14'};
+ return hdr('내 티켓 등록',{backBtn:true})+`<div class="body" style="gap:12px">
+  <div class="step"><span class="badge">1</span>공연 선택</div>
+  ${SHOWS.filter(s=>!s.done).map(s=>`<button class="opt" role="radio" aria-checked="${ui.sel===s.id}" data-sel="${s.id}"><span class="grow" style="flex:1;display:flex;flex-direction:column"><b style="font-size:15px">${esc(s.name)}</b><span class="t-sm">${s.date}(${s.dow}) ${s.start}</span></span>${ic('check',20)}</button>`).join('')}
+  <div class="step"><span class="badge">2</span>예매 내역 캡처</div>
+  <label class="ph" style="height:110px;cursor:pointer" for="cap">${ui.img?`<img src="${ui.img}" alt="올린 예매 캡처">`:`${ic('image',28)}<span>캡처 이미지 올리기</span>`}</label>
+  <input id="cap" type="file" accept="image/*" hidden>
+  <div class="step"><span class="badge">3</span>좌석 정보</div>
+  <div style="display:flex;gap:8px">
+   <div class="field"><label for="f-floor">층</label><input id="f-floor" class="input" value="${esc(d.floor)}"></div>
+   <div class="field"><label for="f-zone">구역</label><input id="f-zone" class="input" inputmode="numeric" value="${esc(d.zone)}"></div>
+   <div class="field"><label for="f-row">열</label><input id="f-row" class="input" value="${esc(d.row)}"></div>
+   <div class="field"><label for="f-no">번호</label><input id="f-no" class="input" inputmode="numeric" value="${esc(d.no)}"></div>
+  </div>
+  <div class="card" style="padding:14px"><span class="t-sm">캡처의 공연명과 좌석이 맞으면 인증 표시가<br>붙고, 그 좌석의 후기를 쓸 수 있어요</span></div>
+  ${ui.img?'':'<span class="err">캡처 없이 등록하면 \'인증 대기\'로 표시되고, 캡처를 올리면 인증돼요</span>'}
+  <div class="spacer"></div>
+  <button class="btn primary" data-act="register">등록하기</button>
+ </div>`;},
+
+sight:()=>{const sh=show();const hall=standing();const vkey=S.venue;
+ const pub=id=>S.posts.filter(p=>p.status==='공개'&&(p.venue||'gocheok')===vkey&&(p.sec||p.zone)===id).length;
+ const cnt=id=>seedReviews(id).length+pub(id);
+ const cls=id=>{const n=cnt(id);return n>=5?'c2':n>=1?'c1':'c0';};
+ const my=mySec();
+ let svg;
+ if(hall){const Wd=H.w,y0=H.stage.z-H.stage.d/2-1;
+  svg=`<svg viewBox="${-Wd/2-1} ${y0} ${Wd+2} ${H.d/2-y0+1}" role="img" aria-label="홍대 롤링홀 스탠딩 구역도">
+   <rect x="${-H.stage.w/2}" y="${H.stage.z-H.stage.d/2}" width="${H.stage.w}" height="${H.stage.d}" rx="0.6" fill="var(--inv)"/><text x="0" y="${H.stage.z+0.5}" text-anchor="middle" font-size="1.4" class="lab on">무대</text>
+   ${H.zones.map(z=>`<rect class="sec ${ui.sec===z.id?'sel':cls(z.id)}" data-sec="${z.id}" x="${-Wd/2+0.5}" y="${z.z0+0.1}" width="${Wd-1}" height="${z.z1-z.z0-0.2}" rx="0.6"/><text x="0" y="${(z.z0+z.z1)/2+0.5}" text-anchor="middle" font-size="1.3" class="lab ${ui.sec===z.id?'on':''}">${z.id}</text>`).join('')}
+   <rect x="${-Wd/2+0.5}" y="9.6" width="${Wd-1}" height="3" rx="0.6" fill="var(--muted)"/><text x="0" y="11.5" text-anchor="middle" font-size="1.1" fill="var(--ts)">입구, 바, 물품보관</text></svg>`;}
+ else{const fl=ui.floor;const Rm=G.floors[3].r0+G.steps*G.stepR+2;
+  let s=`<svg viewBox="${-Rm} -94 ${Rm*2} ${Rm+96}" role="img" aria-label="고척스카이돔 좌석 구조도">`;
+  s+=`<rect x="${-G.stage.w/2}" y="${G.stage.z-G.stage.d/2}" width="${G.stage.w}" height="${G.stage.d}" rx="1.5" fill="var(--inv)"/><text x="0" y="${G.stage.z+1.6}" text-anchor="middle" font-size="5" class="lab on">무대</text>`;
+  for(const b of G.ground){const on=fl===0;s+=`<rect class="sec ${ui.sec===b.id?'sel':cls(b.id)} ${on?'':'dim'} ${my===b.id?'mine':''}" data-sec="${b.id}" x="${b.x-b.w/2}" y="${b.z-b.d/2}" width="${b.w}" height="${b.d}" rx="1.2"/>`;if(on)s+=`<text x="${b.x}" y="${b.z+1.5}" text-anchor="middle" font-size="4" class="lab ${ui.sec===b.id?'on':''}">${b.id.slice(1)}</text>`;}
+  for(const F of G.floors){const on=fl===F.f;const r0=F.r0,r1=F.r0+G.steps*G.stepR;
+   for(let i=0;i<G.secs;i++){const id=String(F.f*100+i+1);const a=G.arc[0]+i*G.arc[1]/G.secs,b=a+G.arc[1]/G.secs;
+    s+=`<path class="sec ${ui.sec===id?'sel':cls(id)} ${on?'':'dim'} ${my===id?'mine':''}" data-sec="${id}" d="${arcPath(r0,r1,a,b)}"><title>${F.f}층 ${id}구역</title></path>`;
+    if(on){const m=(a+b)/2,rm=(r0+r1)/2;s+=`<text x="${(rm*Math.cos(m)).toFixed(1)}" y="${(-rm*Math.sin(m)+1.6).toFixed(1)}" text-anchor="middle" font-size="4.4" class="lab ${ui.sec===id?'on':''}">${id}</text>`;}}}
+  svg=s+'</svg>';}
+ const sel=ui.sec&&(hall?H.zones.some(z=>z.id===ui.sec):parseSec(ui.sec))?ui.sec:null;
+ return hdr('시야')+`<div class="body" style="gap:12px">
+  <span class="t-acc">${hall?'홍대 롤링홀 스탠딩 (확장 예시)':esc(sh.name)+' 무대 배치 기준 (엔드 스테이지)'}</span>
+  ${hall?'':chips(['플로어','1층','2층','3층','4층'],ui.floor===0?'플로어':ui.floor+'층','floor')}
+  <div class="map">${svg}</div>
+  <div class="legend"><span><i style="background:var(--mid)"></i>후기 5개 이상</span><span><i style="background:var(--ph)"></i>후기 1~4개</span><span><i style="background:var(--muted);box-shadow:inset 0 0 0 1px var(--border)"></i>예상 시야만</span>${my&&!hall?'<span><i style="box-shadow:inset 0 0 0 2px var(--inv)"></i>내 좌석</span>':''}</div>
+  ${sel?`<div class="card line" style="gap:10px"><span style="display:flex;align-items:center;gap:8px"><b style="font-size:16px;flex:1">${esc(secLabel(sel))}</b><span class="t-sm">후기 ${cnt(sel)}개</span></span>${tags(secTags(sel))}<span class="t-sm">무대까지 약 ${stageDist(vkey,sel)}m (모형 기준)</span><button class="btn primary" data-act="view" data-s="${esc(sel)}">${ic('eye',18)}&nbsp;이 자리에서 무대 보기</button></div>`
+   :`<div class="card"><span class="t-sm">구조도에서 ${hall?'구역':'구역'}을 누르면 그 자리에서 본 무대를 3D로 볼 수 있어요</span></div>`}
+  ${my&&!hall?row('내 좌석 바로 보기',S.ticket.floor+' '+S.ticket.zone+'구역 '+S.ticket.row+'열','ticket','myseat'):''}
+  ${hall?'':row('내 좌석 시야 등록하기',S.ticket&&S.ticket.verified?'인증된 티켓으로 사진과 평가 올리기':'티켓을 인증한 관람객만 올릴 수 있어요','image','upload')}
+  <span class="t-cap">구역 번호, 후기 수, 무대 위치는 예시 데이터예요</span>
+ </div>`+tabbar('sight');},
+
+view:()=>{const sec=ui.sec;const vkey=S.venue;const hall=standing();const sh=show();
+ const mine=S.posts.filter(p=>(p.venue||'gocheok')===vkey&&(p.sec||p.zone)===sec);
+ const pubs=mine.filter(p=>p.status==='공개');
+ const revs=[...pubs.map(p=>({n:S.nick||'나',t:p.t,rating:p.rating,mine:true})),...seedReviews(sec)];
+ const photos=[...pubs.filter(p=>p.img).map(p=>({img:p.img,cap:`${S.nick||'나'}, ${p.seat}`})),...seedReviews(sec).slice(0,3).map(r=>({img:null,cap:`${r.n} 사진`}))];
+ const canUpload=S.ticket&&S.ticket.verified&&!hall&&mySec()===sec;
+ const mode=ui.vmode;
+ ui._mount=()=>{if(mode!=='3d')return;const el=document.getElementById('v3d');R3=mountSeatView(el,{venue:vkey,sec,height:ui.hgt/100,row:sec===mySec()?S.ticket.row:null});};
+ return hdr(secLabel(sec),{backBtn:true})+`<div class="body" style="gap:12px">
+  <span class="t-acc">${hall?'홍대 롤링홀 스탠딩 (확장 예시)':esc(sh.name)+', 엔드 스테이지'}</span>
+  <div class="seg" role="group"><button data-vmode="3d" aria-pressed="${mode==='3d'}">3D 예상 시야</button><button data-vmode="photo" aria-pressed="${mode==='photo'}">실제 사진 ${photos.length}장</button></div>
+  ${mode==='3d'?`<div class="stage3d" id="v3d"><div class="ov" style="right:10px;top:10px"><button class="ovb" data-act="reset3d">정면 보기</button></div></div>
+   <span class="t-cap">드래그해서 둘러보고, 두 손가락이나 휠로 확대해요. 예상 시야는 공연장 모형으로 계산한 화면이라 실제와 다를 수 있어요</span>
+   ${hall?`<label class="field" for="hgt" style="flex:none"><span class="t-sm" style="font-weight:500">내 키 <b id="hgtv">${ui.hgt}</b>cm 기준</span><input id="hgt" class="range" type="range" min="145" max="195" step="1" value="${ui.hgt}"></label>`:''}`
+  :`<div class="grid2">${photos.length?photos.map(p=>`<div class="ph" style="padding:0">${p.img?`<img src="${p.img}" alt="${esc(p.cap)}">`:`${ic('image',24)}<span style="font-size:11px">${esc(p.cap)}</span>`}</div>`).join(''):''}</div>
+   ${photos.length?'<span class="t-cap">회색 칸은 예시 후기의 사진 자리예요</span>':'<div class="card line"><span class="t-sm">아직 실제 사진이 없어요. 3D 예상 시야를 먼저 확인해 보세요</span></div>'}`}
+  <dl class="kv"><dt>무대까지</dt><dd>약 ${stageDist(vkey,sec,sec===mySec()?S.ticket.row:null)}m (모형 기준)</dd>${sec===mySec()?`<dt>내 좌석</dt><dd>${esc(seatText(S.ticket))} 눈높이</dd>`:''}<dt>시야 특징</dt><dd>${esc(secTags(sec).join(', '))||'정보 없음'}</dd></dl>
+  ${mine.filter(p=>p.status!=='공개').map(p=>`<div class="card line" style="flex-direction:row;align-items:center;gap:10px"><span class="status">${p.status}</span><span class="t-sm">내가 올린 시야가 검수 중이에요</span></div>`).join('')}
+  <h2>티켓 인증 후기 ${revs.length}개</h2>
+  ${revs.length?revs.map(r=>`<div class="card" style="padding:14px;gap:6px"><span style="display:flex;gap:8px;align-items:center"><b style="font-size:13px">${esc(r.n)}</b><span class="t-cap" style="color:var(--tp);font-weight:500">티켓 인증${r.h?', 키 '+r.h:''}${r.rating?', '+'★'.repeat(r.rating):''}</span></span><span>${nl(r.t)}</span></div>`).join(''):'<div class="card line"><span class="t-sm">이 구역은 아직 후기가 없어요</span></div>'}
+  ${canUpload?'<button class="btn primary" data-go="upload">내 좌석 시야 등록하기</button>':`<span class="t-cap">${hall?'스탠딩 후기 등록은 확장 단계에서 열려요':'이 좌석의 티켓을 인증한 관람객만 시야를 올릴 수 있어요'}</span>`}
+ </div>`;},
+
+upload:()=>{const t=S.ticket;
+ if(!t)return hdr('시야 등록',{backBtn:true})+`<div class="body"><div class="card" style="padding:20px;gap:10px">${ic('ticket',28)}<b style="font-size:16px">티켓을 먼저 등록해 주세요</b><span class="t-sm">시야는 그 좌석의 티켓을 인증한 관람객만<br>올릴 수 있어요. 엉뚱한 좌석 사진을 막기 위해서예요</span><button class="btn primary" data-go="ticket">내 티켓 등록</button></div></div>`;
+ if(!t.verified)return hdr('시야 등록',{backBtn:true})+`<div class="body"><div class="card" style="padding:20px;gap:10px">${ic('check',28)}<b style="font-size:16px">티켓 인증이 필요해요</b><span class="t-sm">예매 확인 화면을 캡처해 올리면 공연명과 좌석을<br>확인해 인증해요. 바코드는 자동으로 가려요</span><label class="btn primary" for="vcap" style="cursor:pointer">예매 캡처 올려 인증하기</label><input id="vcap" type="file" accept="image/*" hidden></div></div>`;
+ const sh=show();const sec=mySec();const allTags=['무대 정면','전광판 잘 보임','단차 높음','시야 방해 있음','측면','무대 가까움'];
+ const ok=ui.reviewImg&&ui.rating&&ui.consent;
+ return hdr('시야 등록',{backBtn:true})+`<div class="body" style="gap:12px">
+  <div class="row" style="padding:14px;gap:10px">${ic('check',20)}<span class="grow"><span style="font-size:12px;font-weight:500">인증된 티켓에서 자동 입력 (수정 불가)</span><b style="font-size:14px">${esc(sh.name)}, ${esc(seatText(t))}</b><span class="t-cap">무대 형태: 엔드 스테이지</span></span></div>
+  ${sec?'':'<span class="err">구조도에 없는 구역 번호예요. 등록은 되지만 구조도에는 표시되지 않아요</span>'}
+  <div class="card" style="padding:14px;gap:4px"><b style="font-size:13px">촬영 안내</b><span class="t-sm">공연 중 촬영은 금지예요. 공연 시작 전이나 중간 휴식 때 빈 무대를 찍어 주세요. 얼굴과 화면 속 개인정보는 자동으로 가려요</span></div>
+  <label class="ph" style="height:170px;cursor:pointer" for="rimg">${ui.reviewImg?`<img src="${ui.reviewImg}" alt="올린 시야 사진">`:`${ic('image',28)}<span>내 자리에서 찍은 사진 올리기 (필수)</span>`}</label>
+  <input id="rimg" type="file" accept="image/*" hidden>
+  <h2 style="font-size:15px">시야 만족도</h2>
+  <div class="stars" role="group" aria-label="별점">${[1,2,3,4,5].map(n=>`<button data-rate="${n}" aria-pressed="${ui.rating>=n}" aria-label="${n}점">★</button>`).join('')}</div>
+  <h2 style="font-size:15px">어땠나요?</h2>
+  <div class="chips" role="group">${allTags.map(x=>`<button class="chip" data-tagt="${esc(x)}" aria-pressed="${ui.tags.has(x)}">${esc(x)}</button>`).join('')}</div>
+  <label for="rtext" class="t-sm" style="font-weight:500">한 줄 후기</label>
+  <textarea id="rtext" class="input" placeholder="자리에서 본 느낌을 적어 주세요" maxlength="200">${esc(ui.draft||'')}</textarea>
+  <button class="consent" role="checkbox" aria-checked="${!!ui.consent}" data-act="consent"><span class="cb" style="margin-top:1px">${ic('check',14)}</span><span>내가 찍은 사진이고, 다른 관람객에게 보여 주는 데 동의해요 (필수)</span></button>
+  <span class="t-cap">올린 시야는 AI 1차 검수 후 공개돼요. 신고가 쌓이면 자동으로 숨겨져요</span>
+  <button class="btn primary" data-act="post" ${ok?'':'disabled'}>등록하기</button>
+ </div>`;},
+
+place:()=>{const hall=standing();const v=V();const t=S.ticket;const my=hall?null:mySec();
+ ui._mount=()=>{const el=document.getElementById('p3d');R3=mountVenueMap(el,{venue:S.venue,mySec:my,onPick:m=>{const box=document.getElementById('pinfo');if(!box)return;box.innerHTML=m?`<b style="font-size:15px">${esc(m.title)}</b><span class="t-sm">${esc(m.desc)}</span>`:'<span class="t-sm">표시를 누르면 설명이 나와요</span>';}});
+  if(R3&&!hall)R3.setFloor(ui.f3);
+  el.querySelectorAll('.ovb[data-f3n]').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation();ui.f3=+b.dataset.f3n;el.querySelectorAll('.ovb[data-f3n]').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.f3n===ui.f3)));R3&&R3.setFloor(ui.f3);}));};
+ const map3d=`<div class="stage3d" id="p3d">${hall?'':`<div class="ov" style="left:10px;top:10px">${[['전체',0],['1층',1],['2층',2],['3층',3],['4층',4]].map(([l,n])=>`<button class="ovb" data-f3n="${n}" aria-pressed="${ui.f3===n}">${l}</button>`).join('')}</div>`}</div>
+  <span class="t-cap">드래그로 돌려 보고 표시를 누르면 설명이 나와요. ${hall?'구조와 위치는 예시예요':'출입문, 매점, 아기쉼터, 엘리베이터는 시설현황 기준이고 위치는 예시예요'}</span>
+  <div class="card line" id="pinfo" style="gap:4px"><span class="t-sm">표시를 누르면 설명이 나와요</span></div>`;
+ if(hall){return hdr('공연장')+`<div class="body" style="gap:12px">
+  <span class="t-acc">${esc(v.name)}, 스탠딩 공연장 (확장 예시)</span>${map3d}
+  <div class="card inv" style="padding:18px;gap:4px"><span class="m" style="font-size:12px;font-weight:500">내 입장 번호 기준</span><span style="font-size:24px;font-weight:700">입장 번호 150번</span><span style="font-size:13px">번호 순서대로 입장, 예상 입장 17:40</span><span class="m" style="font-size:11px">입장 방식과 시각은 공연별 공지를 운영자가 입력</span></div>
+  ${row('물품보관','공연별 공지 기준으로 안내','box')}
+  ${row('공연 후에도 여는 곳','주변 식당과 카페','store')}
+ </div>`+tabbar('place');}
+ let inner='';
+ if(ui.vtab==='입장'){inner=`<div class="card inv" style="padding:18px;gap:4px"><span class="m" style="font-size:12px;font-weight:500">${t?'내 좌석 기준 추천 출입문':'티켓을 등록하면 내 좌석 기준으로 바뀌어요'}</span><span style="font-size:24px;font-weight:700">F 출입문 (외야)</span><span style="font-size:13px">구일역 서측 출구에서 도보 약 3분</span><span class="m" style="font-size:11px">출입문은 공연마다 달라 운영자가 공연별로 입력</span></div>
+  <button class="btn secondary" data-mapgo="subway" data-mf="guil">구일역에서 오는 길 지도로 보기</button>
+  ${row('가까운 화장실, 매점',t?`${t.floor} ${t.zone}구역 뒤쪽`:'좌석을 등록하면 보여요','toilet')}
+  ${row('공연 후에도 여는 곳',`주변 ${SHOPS.filter(s=>s.after).length}곳`,'store')}`;}
+ if(ui.vtab==='시설'){inner=`${row('매점','2층, 3층, 4층','store')}${row('아기쉼터','2층, 3층','pin')}${row('노약자, 장애인 엘리베이터','위 3D 지도에서 EV 표시','pin')}<span class="t-cap">출처: 서울시설공단 고척스카이돔 시설현황. 건물 안 위치는 위 3D 구조에서 확인해요</span><button class="btn secondary" data-mapgo="dome" data-mf="dome">지도에서 고척스카이돔 보기</button>`;}
+ if(ui.vtab==='상권'){inner=SHOPS.map(s=>`<div class="row" style="background:var(--card);border:1px solid var(--border)">${ic('store',22)}<span class="grow"><b>${esc(s.n)}</b><span class="t-sm">${s.k}, ${s.h}</span></span>${s.after?'<span class="tag">공연 후에도 영업</span>':''}</div>`).join('')+'<span class="t-cap">상가 목록: 소상공인시장진흥공단 상가정보, 영업시간은 운영자 확인 (예시 값)</span><button class="btn secondary" data-mapgo="food" data-mf="dome">지도에서 주변 상권 보기</button>';}
+ if(ui.vtab==='주차'){inner=`<div class="card" style="flex-direction:row;align-items:center;gap:10px;padding:14px">${ic('car',20)}<span style="display:flex;flex-direction:column"><b style="font-size:13px">공연 당일 고척돔 주차장은 일반 주차 불가</b><span style="font-size:12px">대중교통 이용을 권해요. 주변 주차장도 빨리 차요</span></span></div>
+  <div class="card line" style="padding:4px 16px;gap:0">${LOTS.map((l,i)=>`<button class="lot" style="width:100%;text-align:left" data-mapgo="parking" data-mf="lot${i}"><b>${esc(l.n)}</b><span class="fee">${l.f}</span><span class="t-cap" style="grid-column:1/-1">${esc(l.d)}, 지도에서 보기</span></button>`).join('')}</div>
+  <span class="t-cap">출처: 서울시설공단 고척스카이돔 주차 안내</span>`;}
+ return hdr('공연장')+`<div class="body" style="gap:12px"><span class="t-acc">${esc(v.name)} 시설 구조</span>${map3d}${chips(['입장','시설','상권','주차'],ui.vtab,'vtab')}${inner}</div>`+tabbar('place');},
+
+move:()=>{const sh=show();const arr=addMin(sh.end,23);
+ const sets={'전체':['subway','bus','parking'],'지하철':['subway'],'버스':['bus'],'주차':['parking']};const kinds=sets[ui.mset];
+ const list=PLACES.filter(p=>kinds.includes(p.kind));
+ if(!list.some(p=>p.id===ui.mfocus))ui.mfocus=list[0]?list[0].id:null;
+ ui._mount=()=>{const el=document.getElementById('mbox');MAPH=mountMap(el,{kinds,focus:ui.mfocus,onFocus:setFocus});};
+ return hdr('이동')+`<div class="body" style="gap:12px">
+  <div class="chips" role="group">${Object.keys(sets).map(k=>`<button class="chip" data-mset="${k}" aria-pressed="${ui.mset===k}">${k}</button>`).join('')}</div>
+  <div class="mapbox" id="mbox"></div>
+  <div class="card line focus" id="mfocus">${focusHTML(placeById(ui.mfocus))}</div>
+  <div class="card inv" style="padding:16px 18px;gap:2px"><span class="m" style="font-size:12px;font-weight:500">${esc(sh.name)} 종료 예정 ${sh.end}</span><span style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">구일역 도착 약 ${arr}</span><span style="font-size:12px">퇴장 약 20분 + 2번 출구까지 도보 약 3분. 막차 시각은 코레일 시간표 연동 예정</span></div>
+  <div class="row" style="padding:14px"><span class="grow"><span style="font-weight:500">고척돔 주변 지금</span><span class="t-cap">서울시 실시간 도시데이터 '고척돔', 5분마다 갱신 (지금은 예시)</span></span><b style="font-size:16px">붐빔</b></div>
+  <h2>${ui.mset==='전체'?'귀가 방법':ui.mset}</h2>
+  ${list.map(p=>`<button class="row" data-mfocus="${p.id}" style="${ui.mfocus===p.id?'background:var(--card);border:1px solid var(--bstrong)':''}">${ic(p.kind==='subway'?'train':p.kind==='bus'?'bus':'car',22)}<span class="grow"><b>${esc(p.name)}</b><span class="t-sm">${esc(p.desc)}</span></span>${ic('pin',18)}</button>`).join('')}
+  ${kinds.includes('parking')?'<span class="t-cap">공연 당일 고척돔 주차장은 일반 주차 불가. 주차장 정보 출처: 서울시설공단</span>':''}
+  <span class="t-cap">출처: 서울시설공단 고척스카이돔 교통 안내. 지도: 네이버 지도</span>
+  <button class="btn ${S.alarm?'secondary':'primary'}" data-act="alarm">${S.alarm?'귀가 알림 설정됨 (누르면 해제)':'공연 종료 10분 전 귀가 알림 받기'}</button>
+ </div>`+tabbar('move');},
+
+mapview:()=>{const kinds=ui.mapKinds||['subway'];const list=PLACES.filter(p=>kinds.includes(p.kind)||(kinds.includes('dome')&&p.kind==='dome'));
+ if(!list.some(p=>p.id===ui.mfocus))ui.mfocus=list[0]?list[0].id:'dome';
+ ui._mount=()=>{const el=document.getElementById('mbox');MAPH=mountMap(el,{kinds,focus:ui.mfocus,onFocus:setFocus});};
+ const food=kinds.includes('food');
+ return hdr(ui.mapTitle||'지도',{backBtn:true})+`<div class="body" style="gap:12px">
+  <div class="mapbox" id="mbox" style="height:320px"></div>
+  <div class="card line focus" id="mfocus">${focusHTML(placeById(ui.mfocus))}</div>
+  ${food?`<div class="card" style="gap:6px"><b style="font-size:14px">주변 상권 위치</b><span class="t-sm">상가 이름과 위치는 소상공인시장진흥공단 상가정보(위도, 경도 포함)로 연결할 예정이에요. 지금 목록은 예시라 지도에 표시하지 않았어요</span><a class="t-sm" style="color:var(--tp);font-weight:700" href="${naverLink('고척스카이돔 맛집')}" target="_blank" rel="noopener">네이버 지도에서 주변 식당 찾기 ↗</a></div>`:''}
+  ${list.map(p=>`<button class="row" data-mfocus="${p.id}" style="${ui.mfocus===p.id?'background:var(--card);border:1px solid var(--bstrong)':''}"><span class="grow"><b>${esc(p.name)}</b><span class="t-sm">${esc(p.desc)}</span></span>${p.lat==null?'<span class="tag">위치 확인 필요</span>':ic('pin',18)}</button>`).join('')}
+ </div>`;},
+
+comm:()=>{const sh=show();
+ let inner;
+ if(ui.ctab==='시야 후기'){const all=[...S.posts.filter(p=>p.status==='공개'||!p.status).map(p=>({seat:p.seat,t:p.t,n:S.nick||'나',img:p.img})),...SEED_POSTS];
+  inner=`<span class="t-sm" style="font-weight:500">${esc(sh.name)} 후기 ${all.length}개</span>`+all.map(p=>`<div class="row" style="padding:12px"><span class="thumb">${p.img?`<img src="${p.img}" alt="">`:ic('image',22)}</span><span class="grow" style="gap:3px"><b style="font-size:13px">${esc(p.seat)}</b><span style="font-size:13px">${esc(p.t.split('\n')[0])}</span><span class="t-cap" style="color:var(--tp)">${esc(p.n)}, 티켓 인증</span></span></div>`).join('');}
+ else if(ui.ctab==='동행'){inner=`<div class="card line"><b>동행 안전 수칙</b><span class="t-sm">연락처는 자동으로 가려져요. 앱 안 메시지로만 대화하고, 공공장소에서 만나요. 신고하면 바로 숨겨져요</span></div><div class="card line"><span class="t-sm">글쓰기와 댓글은 이 공연 티켓을 등록한 사람만 할 수 있어요</span></div>`;}
+ else{inner=`${row('MD 현황','품목, 상태, 대기시간 제보 (30분 지나면 흐리게)','box')}${row('공연 공지','입장 시각, 반입 금지 물품','bell')}`;}
+ return hdr('커뮤니티')+`<div class="body" style="gap:12px">${chips(['시야 후기','동행','공연 정보'],ui.ctab,'ctab')}${inner}<div class="spacer"></div>${ui.ctab==='시야 후기'?'<button class="btn primary" data-act="write">내 좌석 시야 등록하기</button>':''}</div>`+tabbar('comm');},
+
+venue:()=>{const q=ui.q.trim();const list=Object.entries(VENUES).filter(([k,v])=>!q||v.name.includes(q));
+ return hdr('공연장 선택',{backBtn:true})+`<div class="body" style="gap:12px">
+  <div class="row" style="background:var(--card);border:1px solid var(--border);padding:4px 12px;gap:8px;border-radius:10px">${ic('search',18)}<input id="vq" aria-label="공연장 검색" class="input" style="border:0;padding:10px 0;background:transparent" placeholder="공연장 이름 검색" value="${esc(ui.q)}"></div>
+  ${list.map(([k,v])=>{const curv=k===S.venue;const lab=v.ready===true?'이용 가능':v.ready==='demo'?'확장 예시 보기':'확장 예정';
+   return `<button class="row" style="${curv?'background:var(--card);border:1px solid var(--bstrong)':''}" data-venue="${k}"><span class="grow"><b>${esc(v.name)}</b><span class="t-cap" style="font-size:12px">${esc(v.area)}${v.type?', '+v.type:''}</span></span>${curv?ic('check',20):`<span class="tag">${lab}</span>`}</button>`;}).join('')||'<span class="t-sm">찾는 공연장이 없어요</span>'}
+  <div class="card" style="padding:14px"><span class="t-sm">공연장 목록은 KOPIS 공연시설 정보로 불러오고, 시야와 시설 정보는 공연장마다 채워 나가요</span></div>
+ </div>`;}
+};
+
+function render(){
+ const v=cur();
+ const keepScroll=app.querySelector('.body')?.scrollTop||0;
+ const sameView=app.dataset.view===v;
+ app.dataset.view=v;
+ disposeR3();ui._mount=null;
+ app.innerHTML=SCREENS[v]()+'<div class="toast" id="toast" hidden></div>';
+ if(ui._mount){try{ui._mount();}catch(err){console.error(err);const el=app.querySelector('.stage3d');if(el)el.innerHTML='<div class="msg">3D 화면을 그리지 못했어요</div>';}}
+ if(sameView){const b=app.querySelector('.body');if(b)b.scrollTop=keepScroll;}
+ bindInputs();
+ document.title=(v==='start'?'':'')+'고척돔 공연 가이드';
+}
+
+function readImg(file,cb){if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');const s=Math.min(1,720/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.8));};img.src=r.result;};r.readAsDataURL(file);}
+
+function bindInputs(){
+ const nick=document.getElementById('nick');
+ if(nick)nick.addEventListener('input',()=>{S.nick=nick.value;const ok=ui.agree[0]&&ui.agree[1]&&/^.{2,10}$/.test(S.nick.trim());app.querySelector('[data-act="join"]').disabled=!ok;});
+ const cap=document.getElementById('cap');
+ if(cap)cap.addEventListener('change',()=>{saveDraft();readImg(cap.files[0],d=>{ui.img=d;render();});});
+ const rimg=document.getElementById('rimg');
+ if(rimg)rimg.addEventListener('change',()=>{ui.draft=(document.getElementById('rtext')||{}).value||'';readImg(rimg.files[0],d=>{ui.reviewImg=d;render();});});
+ const hgt=document.getElementById('hgt');
+ if(hgt)hgt.addEventListener('input',()=>{ui.hgt=+hgt.value;document.getElementById('hgtv').textContent=ui.hgt;R3&&R3.setHeight(ui.hgt/100);});
+ const vcap=document.getElementById('vcap');
+ if(vcap)vcap.addEventListener('change',()=>{readImg(vcap.files[0],()=>{S.ticket.verified=true;save();render();toast('티켓을 인증했어요');});});
+ const vq=document.getElementById('vq');
+ if(vq)vq.addEventListener('input',()=>{ui.q=vq.value;const pos=vq.selectionStart;render();const n=document.getElementById('vq');n.focus();n.setSelectionRange(pos,pos);});
+}
+function saveDraft(){const g=k=>(document.getElementById('f-'+k)||{}).value||'';S._draft={floor:g('floor'),zone:g('zone'),row:g('row'),no:g('no')};}
+
+app.addEventListener('click',e=>{
+ const mf=e.target.closest('[data-mfocus]');if(mf){const id=mf.dataset.mfocus;setFocus(id);MAPH&&MAPH.focus(id);const mb=document.getElementById('mbox');if(mb&&mf.tagName==='BUTTON')mb.scrollIntoView({behavior:'smooth',block:'nearest'});return;}
+ const sv=e.target.closest('[data-sec]');if(sv&&!e.target.closest('button')){ui.sec=sv.dataset.sec;render();return;}
+ const b=e.target.closest('button');if(!b)return;
+ const d=b.dataset;
+ if(d.f3n!==undefined)return;
+ if(d.mset){ui.mset=d.mset;ui.mfocus=null;render();return;}
+ if(d.mapgo){const T={parking:['주차장',['parking']],food:['주변 상권',['food']],dome:['고척스카이돔',['dome']],subway:['오는 길',['subway','bus']]};const [t,k]=T[d.mapgo];ui.mapTitle=t;ui.mapKinds=k;ui.mfocus=d.mf||null;go('mapview');return;}
+ if(d.go){if(d.go==='myseat'){const m=mySec();if(!m){toast('구조도에 있는 좌석을 등록하면 볼 수 있어요');tabTo('sight');return;}ui.sec=m;ui.vmode='3d';const pp=parseSec(m);ui.floor=pp.ground?0:pp.f;stack=['sight','view'];render();return;}
+   if(d.go==='upload'){ui.reviewImg=null;ui.draft='';ui.rating=0;ui.consent=false;ui.tags=new Set();}
+   if(['sight','place','move'].includes(d.go)){tabTo(d.go);return;}
+   go(d.go);return;}
+ if(d.sec){ui.sec=d.sec;render();return;}
+ if(d.floor){ui.floor=d.floor==='플로어'?0:parseInt(d.floor,10);ui.sec=null;render();return;}
+ if(d.vmode){ui.vmode=d.vmode;render();return;}
+ if(d.rate){ui.draft=(document.getElementById('rtext')||{}).value||ui.draft;ui.rating=+d.rate;render();return;}
+ if(d.tab){if(d.tab==='home'||d.tab!==cur())tabTo(d.tab);return;}
+ if(d.zone){ui.zone=d.zone.replace('구역','');render();return;}
+ if(d.stand){ui.stand=d.stand;render();return;}
+ if(d.vtab){ui.vtab=d.vtab;render();return;}
+ if(d.ctab){ui.ctab=d.ctab;render();return;}
+ if(d.sel){saveDraft();ui.sel=d.sel;render();return;}
+ if(d.tagt){ui.draft=document.getElementById('rtext').value;ui.tags.has(d.tagt)?ui.tags.delete(d.tagt):ui.tags.add(d.tagt);render();return;}
+ if(d.agree!==undefined){if(d.agree==='all'){const v=!ui.agree.every(Boolean);ui.agree=ui.agree.map(()=>v);}else{ui.agree[+d.agree]=!ui.agree[+d.agree];}render();return;}
+ if(d.venue){const v=VENUES[d.venue];
+   if(v.ready===false){toast(`${v.name}은 확장 예정이에요`);return;}
+   S.venue=d.venue;save();toast(`${v.name}(으)로 바꿨어요`);stack=['home'];render();return;}
+ switch(d.act){
+  case 'back':back();break;
+  case 'browse':stack=['home'];render();break;
+  case 'bell':toast(S.ticket?'예매 오픈과 출발 알림을 받고 있어요':'티켓을 등록하면 알림을 받을 수 있어요');break;
+  case 'join':S.joined=true;S.nick=S.nick.trim();save();stack=['home'];render();toast(`${S.nick}님, 가입을 마쳤어요`);break;
+  case 'register':{saveDraft();const x=S._draft;if(!x.floor||!x.zone||!x.row||!x.no){toast('좌석 정보를 모두 입력해 주세요');return;}
+    S.ticket={show:ui.sel,floor:x.floor,zone:x.zone.replace(/[^0-9A-Za-z]/g,''),row:x.row.replace('열',''),no:x.no.replace('번',''),verified:!!ui.img};S.venue='gocheok';
+    if(ZONES[S.ticket.zone])ui.zone=S.ticket.zone;save();stack=['home'];render();toast('티켓을 등록했어요');break;}
+  case 'alarm':S.alarm=!S.alarm;save();render();toast(S.alarm?'공연 종료 10분 전에 귀가 방법을 알려 드릴게요':'귀가 알림을 껐어요');break;
+  case 'write':ui.reviewImg=null;ui.draft='';ui.rating=0;ui.consent=false;ui.tags=new Set();go('upload');break;
+  case 'view':ui.sec=d.s;ui.vmode='3d';go('view');break;
+  case 'reset3d':R3&&R3.reset();break;
+  case 'consent':ui.draft=(document.getElementById('rtext')||{}).value||'';ui.consent=!ui.consent;render();break;
+  case 'post':{const txt=document.getElementById('rtext').value.trim()||'한 줄 후기 없음';
+    if(!(ui.reviewImg&&ui.rating&&ui.consent)){toast('사진, 별점, 동의가 필요해요');return;}
+    const t=S.ticket;const sec=mySec()||String(t.zone);const post={id:Date.now(),venue:'gocheok',sec,zone:sec,seat:`${t.floor} ${t.zone}구역 ${t.row}열`,t:txt,tags:[...ui.tags],img:ui.reviewImg,rating:ui.rating,status:'검수 중'};
+    S.posts.unshift(post);save();S.venue='gocheok';ui.sec=sec;ui.vmode='photo';const pp=parseSec(sec);if(pp)ui.floor=pp.ground?0:pp.f;
+    stack=['sight','view'];render();toast('AI가 사진을 확인하고 있어요');
+    setTimeout(()=>{post.status='공개';save();if(cur()==='view'||cur()==='comm'||cur()==='sight')render();toast('검수를 통과해 시야가 공개됐어요');},1800);break;}
+ }
+});
+app.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nick'){const j=app.querySelector('[data-act="join"]');if(!j.disabled)j.click();}});
+
+render();
+})();
+</script>
+
+</body>
+</html>
