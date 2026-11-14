@@ -158,6 +158,26 @@ textarea.input{min-height:110px;resize:vertical}
 .mk-list button:last-child{border-bottom:0}
 .mk-list span{color:#737373;font-size:12px;white-space:nowrap}
 .mapcanvas .pt.dot circle{stroke-width:6}
+.bn-track{position:relative;display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -20px;padding:0 20px;scroll-padding:0 20px;overscroll-behavior-x:contain}
+.bn-track::-webkit-scrollbar{display:none}
+.bn-slide{flex:0 0 86%;scroll-snap-align:start;background:var(--inv);color:var(--on-inv);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px;min-height:156px}
+.bn-slide.done{opacity:.5}
+.bn-top{display:flex;gap:6px;margin-bottom:auto}
+.bn-badge{font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--on-inv);color:var(--inv)}
+.bn-badge.ghost{background:none;border:1px solid var(--on-inv-m);color:var(--on-inv-m)}
+.bn-date{font-size:13px;font-weight:500;color:var(--on-inv-m);font-variant-numeric:tabular-nums}
+.bn-name{font-size:19px;line-height:1.35}
+.bn-meta{font-size:12px;color:var(--on-inv-m)}
+.bn-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.bn-dots{display:flex;gap:6px;flex:none}
+.bn-dots button{width:7px;height:7px;border-radius:4px;background:var(--ph);padding:0;transition:width .2s}
+.bn-dots button[aria-current="true"]{width:18px;background:var(--inv)}
+.board{padding:2px 16px;gap:0}
+.brow{display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--border);color:var(--tp);text-decoration:none}
+.brow:last-child{border-bottom:0}
+.brow .grow{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.brow b{font-size:14px;font-weight:500}
+.brow .tag{flex:none}
 .focus{gap:6px}
 .stage3d{position:relative;height:270px;border-radius:12px;overflow:hidden;background:#121212;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
 .stage3d canvas{display:block;width:100%;height:100%;cursor:grab}
@@ -236,10 +256,15 @@ const ic=(n,s=20)=>`<svg class="ic" style="--s:${s}px" viewBox="0 0 24 24" aria-
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- data (예시 값 포함) ---------- */
+/* ymd: 날짜 비교용(지난 공연, 오늘 표시). start, open, end가 null이면 공지 확인 전이라 "확인 필요"로 보여 준다
+   KGMA 7일 시간, MMA 입장, 종료 시각은 공식 공지를 찾지 못해 비워 둠 */
 const SHOWS=[
- {id:'K',name:'2026 KOREA GRAND MUSIC AWARD',date:'11/8',dow:'일',start:'17:00',open:'16:00',end:'21:30',seller:'NOL 티켓',done:true,real:true},
- {id:'A',name:'[공연명 A]',date:'11/22',dow:'토',start:'18:00',open:'16:30',end:'21:20',seller:'NOL 티켓'},
- {id:'B',name:'[공연명 B]',date:'11/29',dow:'토',start:'17:00',open:'15:30',end:'20:10',seller:'티켓링크'}
+ {id:'K1',name:'2026 KOREA GRAND MUSIC AWARD (1일차)',ymd:'2026-11-07',date:'11/7',dow:'토',start:null,open:null,end:null,seller:'NOL 티켓',done:true,real:true,src:'KGMA 공식 발표 보도'},
+ {id:'K',name:'2026 KOREA GRAND MUSIC AWARD',ymd:'2026-11-08',date:'11/8',dow:'일',start:'17:00',open:'16:00',end:'21:30',seller:'NOL 티켓',done:true,real:true},
+ {id:'M1',name:'MMA2026 멜론뮤직어워드 (1일차)',ymd:'2026-11-14',date:'11/14',dow:'토',start:'18:00',open:null,end:null,seller:'멜론티켓',real:true,src:'멜론 공식 안내 보도 (레드카펫 17:00)'},
+ {id:'M2',name:'MMA2026 멜론뮤직어워드 (2일차)',ymd:'2026-11-15',date:'11/15',dow:'일',start:'18:00',open:null,end:null,seller:'멜론티켓',real:true,src:'멜론 공식 안내 보도 (레드카펫 17:00)'},
+ {id:'A',name:'[공연명 A]',ymd:'2026-11-22',date:'11/22',dow:'토',start:'18:00',open:'16:30',end:'21:20',seller:'NOL 티켓'},
+ {id:'B',name:'[공연명 B]',ymd:'2026-11-29',date:'11/29',dow:'토',start:'17:00',open:'15:30',end:'20:10',seller:'티켓링크'}
 ];
 const VENUES={
  gocheok:{name:'고척스카이돔',area:'서울 구로구 경인로 430, 관람석 16,601석',type:'지정석, 플로어',ready:true},
@@ -247,6 +272,20 @@ const VENUES={
  olympic:{name:'올림픽홀',area:'서울 송파구',ready:false},
  yes24:{name:'YES24 라이브홀',area:'서울 광진구',ready:false}
 };
+/* 홈 하단 공식 안내 게시판: 공식 기관, 예매처 글의 제목, 출처, 날짜, 링크만 모은다 (본문은 가져오지 않음).
+   공연장별로 추가. 확인 날짜 2026-11-14, 서울시설공단 고척스카이돔 누리집 */
+const OFFICIAL={
+ gocheok:[
+  {cat:'공지',title:'고척스카이돔 부설주차장 차량 5부제 시행 안내',src:'서울시설공단 새소식',date:'2026.04.08',url:'https://www.sisul.or.kr/open_content/skydome/bbs/bbsMsgDetail.do?msg_seq=8728&bcd=notice'},
+  {cat:'일정',title:'경기, 행사 일정',src:'서울시설공단 이용안내',url:'https://www.sisul.or.kr/open_content/skydome/guidance/schedule.jsp'},
+  {cat:'교통',title:'찾아오시는 길 (지하철, 버스)',src:'서울시설공단',url:'https://www.sisul.or.kr/open_content/skydome/introduce/location.jsp'},
+  {cat:'주차',title:'주차장 이용 안내',src:'서울시설공단',url:'https://www.sisul.or.kr/open_content/skydome/guidance/parking.jsp'},
+  {cat:'시설',title:'시설 안내',src:'서울시설공단',url:'https://www.sisul.or.kr/open_content/skydome/introduce/facility.jsp'},
+  {cat:'문의',title:'자주하는 질문',src:'서울시설공단',url:'https://www.sisul.or.kr/open_content/skydome/community/faq.jsp'},
+  {cat:'공지',title:'새소식 전체 보기',src:'서울시설공단',url:'https://www.sisul.or.kr/open_content/skydome/bbs/bbsMsgList.do?bcd=notice'}
+ ]
+};
+const OFFICIAL_CATS=['전체','공지','일정','교통','주차','시설','문의'];
 const ZONES={
  '311':{tags:['측면','전광판 잘 보임'],reviews:[{n:'[닉네임]',t:'무대가 비스듬하지만\n전광판이 정면이라 편했어요'}]},
  '312':{tags:['무대 정면','전광판 잘 보임','단차 높음'],reviews:[{n:'[닉네임]',t:'돌출 무대까지 잘 보여요.\n단차가 높아 앞사람에 안 가려요'},{n:'[닉네임]',t:'전광판은 잘 보이는데\n본무대는 작게 보여요'}]},
@@ -691,7 +730,7 @@ try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(S,JSON.parse(raw)
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){try{localStorage.setItem(KEY,JSON.stringify({...S,posts:S.posts.map(p=>({...p,img:null}))}));}catch(e2){}}};
 S.posts=(S.posts||[]).map(p=>Object.assign({status:'공개',venue:'gocheok',sec:p.sec||p.zone},p,p.status==='검수 중'?{status:'공개'}:{}));
 let stack=[S.joined?'home':'start'];
-let ui={mset:'전체',mfocus:'guil',mapKinds:null,mapTitle:'',sec:null,floor:3,vmode:'3d',hgt:165,f3:0,rating:0,consent:false,_mount:null,zone:'312',stand:'앞쪽',vtab:'입장',ctab:'시야 후기',sel:'A',img:null,tags:new Set(['무대 정면']),agree:[true,true,true,false],q:'',reviewImg:null,me:null,locBusy:false,locErr:'',scat:'전체',slim:20};
+let ui={mset:'전체',mfocus:'guil',mapKinds:null,mapTitle:'',sec:null,floor:3,vmode:'3d',hgt:165,f3:0,rating:0,consent:false,_mount:null,zone:'312',stand:'앞쪽',vtab:'입장',ctab:'시야 후기',sel:'A',img:null,tags:new Set(['무대 정면']),agree:[true,true,true,false],q:'',reviewImg:null,me:null,locBusy:false,locErr:'',scat:'전체',slim:20,ocat:'전체'};
 
 const app=document.getElementById('app');
 const cur=()=>stack[stack.length-1];
@@ -717,6 +756,15 @@ const hdr=(title,{backBtn=false,venue=false,bell=false}={})=>`<header class="hdr
 const TABS=[['home','홈','home'],['sight','시야','eye'],['place','공연장','pin'],['move','이동','train'],['comm','커뮤니티','chat']];
 const tabbar=active=>`<nav class="tabbar" aria-label="주요 메뉴">${TABS.map(([v,l,i])=>`<button class="tab" data-tab="${v}" ${v===active?'aria-current="page"':''}>${ic(i,22)}<span>${l}</span></button>`).join('')}</nav>`;
 const row=(title,sub,icon,go)=>`<${go?'button':'div'} class="row" ${go?`data-go="${go}"`:''}>${icon?ic(icon,22):''}<span class="grow"><b>${esc(title)}</b>${sub?`<span class="t-sm">${esc(sub)}</span>`:''}</span>${go?ic('chevron-right',20):''}</${go?'button':'div'}>`;
+const todayYmd=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+/* 홈 슬라이드 배너: 가로 스크롤 + 스냅(손가락으로 넘김), 점을 누르면 이동. 처음에는 오늘 이후 첫 공연이 보이게 */
+function mountBanner(first){const tr=document.getElementById('bnTrack');if(!tr)return;
+ const sl=[...tr.children],dots=[...document.querySelectorAll('[data-bn]')];
+ const go=(i,smooth)=>{const el=sl[i];if(el)tr.scrollTo({left:el.offsetLeft-sl[0].offsetLeft,behavior:smooth?'smooth':'auto'});};
+ const mark=()=>{const x=tr.scrollLeft;let k=0;sl.forEach((el,i)=>{if(Math.abs(el.offsetLeft-sl[0].offsetLeft-x)<Math.abs(sl[k].offsetLeft-sl[0].offsetLeft-x))k=i;});dots.forEach((d,i)=>d.setAttribute('aria-current',i===k));};
+ let raf=0;tr.addEventListener('scroll',()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(mark);},{passive:true});
+ dots.forEach((d,i)=>d.addEventListener('click',e=>{e.stopPropagation();go(i,false);mark();}));
+ go(first,false);mark();}
 const chips=(list,cur,attr)=>`<div class="chips" role="group">${list.map(c=>`<button class="chip" data-${attr}="${esc(c)}" aria-pressed="${c===cur}">${esc(c)}</button>`).join('')}</div>`;
 const tags=list=>`<div class="chips">${list.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`;
 const nl=s=>esc(s).replace(/\n/g,'<br>');
@@ -753,26 +801,44 @@ signup:()=>{const all=ui.agree.every(Boolean);const ok=ui.agree[0]&&ui.agree[1]&
   <button class="btn primary" data-act="join" ${ok?'':'disabled'}>가입 완료</button>
  </div>`;},
 
-home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const list=standing()?[{name:'[공연명 C]',date:'11/21',dow:'금',start:'20:00',seller:'YES24 티켓'},{name:'[공연명 D]',date:'11/28',dow:'금',start:'19:30',seller:'NOL 티켓'}]:SHOWS;
+home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const list=standing()?[{name:'[공연명 C]',ymd:'2026-11-21',date:'11/21',dow:'금',start:'20:00',seller:'YES24 티켓'},{name:'[공연명 D]',ymd:'2026-11-28',date:'11/28',dow:'금',start:'19:30',seller:'NOL 티켓'}]:SHOWS;
+ const today=todayYmd();
+ const dday=s=>s.ymd<today?'종료':s.ymd===today?'오늘':`D-${Math.round((new Date(s.ymd)-new Date(today))/864e5)}`;
+ const first=Math.max(0,list.findIndex(s=>s.ymd>=today));
+ ui._mount=()=>mountBanner(first);
+ const banner=`<section class="banner" aria-roledescription="carousel" aria-label="이번 달 ${esc(v.name)} 공연">
+  <div class="bn-track" id="bnTrack">${list.map((s,i)=>`<article class="bn-slide${s.ymd<today?' done':''}" aria-roledescription="slide" aria-label="${i+1}/${list.length}">
+   <span class="bn-top"><span class="bn-badge">${dday(s)}</span>${s.real?'':'<span class="bn-badge ghost">예시</span>'}</span>
+   <span class="bn-date">${s.date} (${s.dow})</span>
+   <b class="bn-name">${esc(s.name)}</b>
+   <span class="bn-meta">${s.start?`${s.start} 시작`:'시간 확인 필요'}${s.end?`, ${s.end} 종료`:''}, 예매처 ${esc(s.seller)}</span></article>`).join('')}</div>
+  <div class="bn-foot"><span class="t-cap">이번 달 ${esc(v.name)} 공연 ${list.length}개, 옆으로 넘겨 보기</span><span class="bn-dots">${list.map((s,i)=>`<button data-bn="${i}" aria-label="${i+1}번째 공연" aria-current="${i===first}"></button>`).join('')}</span></div>
+ </section>`;
+ const offAll=OFFICIAL[S.venue]||[];const ocats=OFFICIAL_CATS.filter(c=>c==='전체'||offAll.some(o=>o.cat===c));if(!ocats.includes(ui.ocat))ui.ocat='전체';
+ const offs=offAll.filter(o=>ui.ocat==='전체'||o.cat===ui.ocat);
+ const board=`<h2>공식 안내</h2>${offAll.length?`${chips(ocats,ui.ocat,'ocat')}
+  <div class="card line board">${offs.map(o=>`<a class="brow" href="${esc(o.url)}" target="_blank" rel="noopener"><span class="tag">${esc(o.cat)}</span><span class="grow"><b>${esc(o.title)}</b><span class="t-cap">${esc(o.src)}${o.date?`, ${o.date}`:''}</span></span>${ic('chevron-right',18)}</a>`).join('')}</div>
+  <span class="t-cap">공식 기관과 예매처 글의 제목, 출처, 링크만 모았어요. 내용은 원문에서 확인해 주세요 (2026-11-14 확인)</span>`
+  :`<div class="card" style="gap:6px">${ic('box',24)}<span class="t-sm">이 공연장의 공식 안내는 준비 중이에요</span></div>`}`;
  let main;
  if(t){main=`<div class="card inv" style="padding:20px;gap:6px">
    <span class="m" style="font-size:12px;font-weight:700">관람 예정</span>
    <span style="font-size:22px;font-weight:700">${esc(sh.name)}</span>
-   <span>${sh.date}(${sh.dow}) ${sh.start} 시작, ${sh.open} 입장</span><hr>
+   <span>${sh.date}(${sh.dow}) ${sh.start||'시간 확인 필요'}${sh.start?' 시작':''}${sh.open?`, ${sh.open} 입장`:''}</span><hr>
    <span style="display:flex;align-items:center"><b style="flex:1;font-size:15px">${esc(seatText(t))}</b><span class="m" style="font-size:12px;font-weight:500">${t.verified?'인증 완료':'인증 대기'}</span></span>
   </div>
   <h2>오늘 할 일</h2>
   ${row('내 자리 시야 보기',`${t.floor} ${t.zone}구역에서 본 무대 (3D)`,'eye','myseat')}
   ${row('입장 출입문 확인','내 좌석 기준 추천 출입문','pin','place')}
-  ${row('귀가 안내',`구일역 도착 약 ${addMin(sh.end,23)}, 덜 붐비는 역도 안내`,'train','move')}
+  ${row('귀가 안내',sh.end?`구일역 도착 약 ${addMin(sh.end,23)}, 덜 붐비는 역도 안내`:'종료 시각 공지 전, 덜 붐비는 역 안내','train','move')}
   <div class="card line" style="padding:14px;gap:4px"><b style="font-size:13px">공연 당일 날씨</b><span class="t-sm">맑음, 저녁 8℃. 귀갓길 겉옷 챙기기</span><span class="t-cap">기상청 단기예보 (예시 값)</span></div>`;}
  else{main=`<div class="card" style="padding:20px;gap:10px">${ic('ticket',28)}<b style="font-size:16px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b><span class="t-sm">티켓을 등록하면 내 좌석 기준으로<br>시야, 입장, 귀가를 안내해요</span><button class="btn primary" data-go="ticket">내 티켓 등록</button></div>`;}
  return hdr(v.name,{venue:true,bell:true})+`<div class="body">
+  ${banner}
   ${t?'<span class="t-cap">내 티켓의 공연장으로 홈이 자동으로 바뀌어요</span>':''}${standing()?'<span class="t-acc">확장 예시 화면이에요. 공연 목록은 예시 값</span>':''}
   ${main}
-  <h2>이번 달 ${esc(v.name)} 공연</h2>
-  ${list.map(s=>`<div class="row" style="background:var(--card);border:1px solid var(--border);padding:14px;gap:14px;${s.done?'opacity:.7':''}"><span class="date"><b style="font-size:13px">${s.date}</b><span class="t-cap">${s.dow}</span></span><span class="grow"><b>${esc(s.name)}</b><span class="t-cap" style="font-size:12px">${s.start}~${s.end}, 예매처 ${esc(s.seller)}${s.real?'':' (예시)'}</span></span>${s.done?'<span class="tag">종료</span>':''}</div>`).join('')}
-  <span class="t-cap">공연 정보 출처: KOPIS 공연예술통합전산망</span>
+  ${board}
+  <span class="t-cap">공연 정보 출처: 주최 측 공식 발표 보도 (KOPIS 연동 예정). 시간이 비어 있으면 공식 공지 확인 전이에요</span>
  </div>`+tabbar('home');},
 
 ticket:()=>{
@@ -902,7 +968,7 @@ place:()=>{const hall=standing();const v=V();const t=S.ticket;const my=hall?null
   <span class="t-cap">출처: 서울시설공단 고척스카이돔 주차 안내</span>`;}
  return hdr('공연장')+`<div class="body" style="gap:12px"><span class="t-acc">${esc(v.name)} 시설 구조</span>${map3d}${chips(['입장','시설','상권','주차'],ui.vtab,'vtab')}${inner}</div>`+tabbar('place');},
 
-move:()=>{const sh=show();const arr=addMin(sh.end,23);
+move:()=>{const sh=show();const arr=sh.end?addMin(sh.end,23):null;
  const hasShops=shopsOf(S.venue).length>0;
  const sets={'전체':['subway','bus','parking'],'지하철':['subway'],'버스':['bus'],'주차':['parking'],'주변 상권':[hasShops?'shop':'near']};const kinds=sets[ui.mset];
  const isShop=kinds.includes('shop');
@@ -921,7 +987,7 @@ move:()=>{const sh=show();const arr=addMin(sh.end,23);
   <div class="chips" role="group">${Object.keys(sets).map(k=>`<button class="chip" data-mset="${k}" aria-pressed="${ui.mset===k}">${k}</button>`).join('')}</div>
   <div class="mapbox" id="mbox"></div>
   <div class="card line focus" id="mfocus">${focusHTML(placeById(ui.mfocus))}</div>
-  <div class="card inv" style="padding:16px 18px;gap:2px"><span class="m" style="font-size:12px;font-weight:500">${esc(sh.name)} 종료 예정 ${sh.end}</span><span style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">구일역 도착 약 ${arr}</span><span style="font-size:12px">퇴장 약 20분 + 2번 출구까지 도보 약 3분. 막차 시각은 코레일 시간표 연동 예정</span></div>
+  <div class="card inv" style="padding:16px 18px;gap:2px"><span class="m" style="font-size:12px;font-weight:500">${esc(sh.name)} ${sh.end?`종료 예정 ${sh.end}`:'종료 시각 공지 전'}</span><span style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">${arr?`구일역 도착 약 ${arr}`:'구일역 도착 시각 확인 필요'}</span><span style="font-size:12px">퇴장 약 20분 + 2번 출구까지 도보 약 3분. 막차 시각은 코레일 시간표 연동 예정</span></div>
   <div class="row" style="padding:14px"><span class="grow"><span style="font-weight:500">고척돔 주변 지금</span><span class="t-cap">서울시 실시간 도시데이터 '고척돔', 5분마다 갱신 (지금은 예시)</span></span><b style="font-size:16px">붐빔</b></div>
   <h2>${ui.mset==='전체'?'귀가 방법':ui.mset}${isShop?` <span class="t-sm" style="font-weight:400">${total}곳</span>`:''}</h2>
   ${isShop?chips(['전체',...SHOP_CATS],ui.scat,'scat'):''}
@@ -1024,6 +1090,7 @@ app.addEventListener('click',e=>{
  if(d.act==='rall'&&ui.route){ui.route.all=true;setFocus(ui.mfocus);return;}
  if(d.act==='shops'){ui.mset='주변 상권';ui.scat=d.scat||'전체';ui.slim=20;ui.mfocus=null;tabTo('move');return;}
  if(d.act==='more'){ui.slim+=20;render();return;}
+ if(d.ocat){ui.ocat=d.ocat;render();return;}
  if(d.scat){ui.scat=d.scat;ui.slim=20;ui.mfocus=null;render();return;}
  if(d.mset){ui.mset=d.mset;ui.mfocus=null;render();return;}
  if(d.mapgo){const T={parking:['주차장',['parking']],dome:['고척스카이돔',['dome']],subway:['오는 길',['subway','bus']]};const [t,k]=T[d.mapgo];ui.mapTitle=t;ui.mapKinds=k;ui.mfocus=d.mf||null;go('mapview');return;}
