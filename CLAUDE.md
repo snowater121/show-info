@@ -96,7 +96,7 @@ M-01 시작 → M-02 가입과 동의 → M-03 홈(티켓 전) → M-04 티켓 �
 
 - 인증은 `ncpKeyId` 파라미터로 정상 동작 확인(2026-11-14). 웹 서비스 URL에 `https://snowater121.github.io` 등록됨
 - 로컬에서 보려면 콘솔에 `http://localhost:8000` 추가 필요
-- **Geocoding은 한 번만 실행해 좌표를 고정**(2026-11-14): `tools/geocode_places.py`가 `.env`(커밋 금지, `.gitignore`에 포함)의 `NAVER_GEOCODE_ID`, `NAVER_GEOCODE_SECRET`으로 주소를 좌표로 바꾸고, 결과를 `PLACES`에 `lat/lng, approx:true`로 적어 둠. 버스 정류장 2곳, 동양미래대 주차장 반영. 정류장은 근처 건물 주소 기준이라 근사 위치. Geocoding용 Application(showinfo)은 지도용 `config.js` Client ID와 다른 앱임
+- **Geocoding은 한 번만 실행해 좌표를 고정**(2026-11-14): `tools/geocode_places.py`가 `.env`(커밋 금지, `.gitignore`에 포함)의 `NAVER_GEOCODE_ID`, `NAVER_GEOCODE_SECRET`으로 주소를 좌표로 바꾸고, 결과를 `PLACES`에 `lat/lng, approx:true`로 적어 둠. 버스 정류장 2곳, 주차장 5곳 모두 반영(생각공장 구로는 건물명 미확인이라 근사 위치). 정류장은 근처 건물 주소 기준이라 근사 위치. Geocoding용 Application(showinfo)은 지도용 `config.js` Client ID와 다른 앱임
 - 네이버 지도가 컨테이너에 `position:relative`를 넣으므로 `.mapcanvas`는 `width/height:100%`를 유지해야 함(지우면 높이 0으로 접힘)
 - **Client Secret은 절대 커밋 금지**(공개 저장소). Directions, Geocoding REST처럼 Secret이 필요한 호출은 서버(예: Vercel 서버 함수)에서만
 - 무료 이용량은 대표 계정 기준. 콘솔 이용 한도 설정 권장
@@ -116,7 +116,7 @@ python3 -m http.server 8000   # http://localhost:8000
 ## 9. 남은 작업 (우선순위 순)
 
 1. ~~Geocoding으로 버스 정류장, 동양미래대 위치 확인~~ 완료(2026-11-14). 정류장 실제 좌표(서울시 버스정류소 위치 데이터 등)로 바꾸면 더 정확함
-2. 주차장 4곳(고척산업용품종합상가, 중앙유통단지, 구로기계공구상가, 생각공장 구로) 도로명주소 확인 → `tools/geocode_places.py`의 `ADDRS`에 추가하고 실행
+2. ~~주차장 4곳 좌표~~ 완료(2026-11-14). 남은 것: 주차장 입구 위치(지금은 건물 주소 기준), 생각공장 구로 주소 공식 확인
 3. KOPIS 공연목록/상세 API 연동 (서비스 키는 서버에서 보관, CORS 때문에 중간 서버 필요). 고척돔 시설 코드로 필터 가능한지 확인
 4. 서울시 실시간 도시데이터 '고척돔' 장소 연동 (혼잡도 4단계, 주변 교통, 공영주차장)
 5. 코레일 시간표로 구일역 막차 표시 (구일역 포함 여부 확인 필요)

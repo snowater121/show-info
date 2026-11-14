@@ -424,14 +424,14 @@ const PLACES=[
  {id:'guil',kind:'subway',name:'구일역 (1호선)',lat:37.49611,lng:126.86972,desc:'2번 출구에서 약 150m, 도보 약 3분. 공연 직후 가장 붐벼요'},
  {id:'gaebong',kind:'subway',name:'개봉역 (1호선)',lat:37.49448,lng:126.85848,desc:'인천, 부천 방면. 도보 약 15분, 구일역보다 덜 붐벼요'},
  {id:'guro',kind:'subway',name:'구로역 (1호선)',lat:37.50306,lng:126.88222,desc:'서울, 수원, 안양 방면. 도보 약 20분, 구일역보다 덜 붐벼요'},
- /* bus1, bus2, lot3 좌표: 네이버 Geocoding으로 건물 주소를 변환 (tools/geocode_places.py, 2026-11-14). 정류장 자체 좌표가 아니라 근처 건물 기준 */
+ /* bus1, bus2, lot0~lot4 좌표: 네이버 Geocoding으로 건물 주소를 변환 (tools/geocode_places.py, 2026-11-14). 정류장 자체 좌표가 아니라 근처 건물 기준 */
  {id:'bus1',kind:'bus',name:'동양미래대학 정류장',addr:'서울특별시 구로구 경인로 445',lat:37.500005,lng:126.868145,approx:true,desc:'간선 160, 600, 660, 662 / 지선 5626, 5712, 6515, 6637, 6713 등'},
  {id:'bus2',kind:'bus',name:'구로성심병원 정류장',addr:'서울특별시 구로구 경인로 427',lat:37.499671,lng:126.866416,approx:true,desc:'간선 160, 600, 660, 662 / 좌석 301, 320, 5200 / 심야 N16 등'},
- {id:'lot0',kind:'parking',name:'고척산업용품종합상가',desc:'약 1,000면, 30분 1,000원'},
- {id:'lot1',kind:'parking',name:'중앙유통단지',desc:'약 4,000면, 30분 1,000원, 현금만'},
- {id:'lot2',kind:'parking',name:'구로기계공구상가',desc:'약 4,000면, 30분 1,000원'},
+ {id:'lot0',kind:'parking',name:'고척산업용품종합상가',addr:'서울특별시 구로구 중앙로3길 50',lat:37.499834,lng:126.860985,desc:'약 1,000면, 30분 1,000원'},
+ {id:'lot1',kind:'parking',name:'중앙유통단지',addr:'서울특별시 구로구 경인로53길 15',lat:37.500971,lng:126.874649,desc:'약 4,000면, 30분 1,000원, 현금만'},
+ {id:'lot2',kind:'parking',name:'구로기계공구상가',addr:'서울특별시 구로구 구로중앙로 198',lat:37.504154,lng:126.879538,desc:'약 4,000면, 30분 1,000원'},
  {id:'lot3',kind:'parking',name:'동양미래대학교',addr:'서울특별시 구로구 경인로 445',lat:37.500005,lng:126.868145,approx:true,desc:'약 320면, 30분 2,000원, 휴일 08:00~23:00만'},
- {id:'lot4',kind:'parking',name:'생각공장 구로',desc:'약 950면, 30분 3,000원'},
+ {id:'lot4',kind:'parking',name:'생각공장 구로',addr:'서울특별시 구로구 경인로 482',lat:37.49817,lng:126.872681,approx:true,desc:'약 950면, 30분 3,000원'},
  /* 주변 상권: 상가 위치 데이터(소상공인시장진흥공단) 연동 전이라 좌표 없이 네이버 지도 검색으로 연결 */
  {id:'near-cvs',kind:'near',name:'편의점',search:'고척스카이돔 편의점',desc:'돔 주변 편의점'},
  {id:'near-food',kind:'near',name:'식당',search:'고척스카이돔 맛집',desc:'공연 전후 식사'},
