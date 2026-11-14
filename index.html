@@ -132,6 +132,9 @@ textarea.input{min-height:110px;resize:vertical}
 .mapnote{position:absolute;left:8px;right:8px;bottom:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--ts)}
 .mk{transform:translate(-50%,-50%);background:#fafafa;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:999px;padding:3px 9px;font:700 12px/1.3 "Noto Sans KR",sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .mk-subway,.mk-dome,.on>.mk{background:#0a0a0a;color:#fafafa}
+.mk.mk-me{background:#0a0a0a;color:#fafafa;border-color:#fafafa;box-shadow:0 0 0 3px #0a0a0a,0 2px 6px rgba(0,0,0,.3)}
+.mapcanvas .pt.me circle{fill:var(--inv);stroke:var(--card);stroke-width:8}
+.mapcanvas .routeline{stroke:var(--inv);stroke-width:10;stroke-dasharray:30 20}
 .on>.mk{outline:3px solid #fafafa;outline-offset:-1px}
 .focus{gap:6px}
 .stage3d{position:relative;height:270px;border-radius:12px;overflow:hidden;background:#121212;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
@@ -194,7 +197,10 @@ const ICONS={
  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
  home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"/>',
  chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
- toilet:'<circle cx="12" cy="5" r="2"/><path d="M9 22v-6H7l2-7h6l2 7h-2v6"/>'
+ toilet:'<circle cx="12" cy="5" r="2"/><path d="M9 22v-6H7l2-7h6l2 7h-2v6"/>',
+ user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+ locate:'<path d="M2 12h3"/><path d="M19 12h3"/><path d="M12 2v3"/><path d="M12 19v3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/>',
+ nav:'<path d="M3 11 22 2l-9 19-2-8Z"/>'
 };
 const ic=(n,s=20)=>`<svg class="ic" style="--s:${s}px" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -427,9 +433,44 @@ const PLACES=[
  {id:'lot1',kind:'parking',name:'중앙유통단지',desc:'약 4,000면, 30분 1,000원, 현금만'},
  {id:'lot2',kind:'parking',name:'구로기계공구상가',desc:'약 4,000면, 30분 1,000원'},
  {id:'lot3',kind:'parking',name:'동양미래대학교',addr:'서울특별시 구로구 경인로 445',desc:'약 320면, 30분 2,000원, 휴일 08:00~23:00만'},
- {id:'lot4',kind:'parking',name:'생각공장 구로',desc:'약 950면, 30분 3,000원'}
+ {id:'lot4',kind:'parking',name:'생각공장 구로',desc:'약 950면, 30분 3,000원'},
+ /* 주변 상권: 상가 위치 데이터(소상공인시장진흥공단) 연동 전이라 좌표 없이 네이버 지도 검색으로 연결 */
+ {id:'near-cvs',kind:'near',name:'편의점',search:'고척스카이돔 편의점',desc:'돔 주변 편의점'},
+ {id:'near-food',kind:'near',name:'식당',search:'고척스카이돔 맛집',desc:'공연 전후 식사'},
+ {id:'near-cafe',kind:'near',name:'카페',search:'고척스카이돔 카페',desc:'입장 전 기다릴 곳'},
+ {id:'near-pharm',kind:'near',name:'약국',search:'고척스카이돔 약국',desc:'상비약, 밴드'}
 ];
-const KIND={dome:'공연장',subway:'지하철',bus:'버스',parking:'주차',food:'상권'};
+const KIND={dome:'공연장',subway:'지하철',bus:'버스',parking:'주차',food:'상권',near:'주변'};
+
+/* ---------- 내 위치와 길 안내 ----------
+ * 위치는 브라우저 권한으로 받고, 이번 접속(ui.me)에서만 쓴다. localStorage에 좌표를 저장하지 않는다.
+ * 앱 안에서는 내 위치와 목적지를 지도에 표시하고 직선 거리만 보여 준다.
+ * 실제 경로 안내는 네이버 지도 앱(URL Scheme nmap://route/...)으로 넘긴다.
+ * 앱 안에서 경로선을 그리려면 Directions API(Client Secret 필요)를 서버에서 호출해야 해서 이번 단계에서는 하지 않음 */
+const distM=(a,b)=>{const R=6371000,r=x=>x*Math.PI/180;const dl=r(b.lat-a.lat),dn=r(b.lng-a.lng);const h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
+const fmtDist=m=>m<1000?`${Math.max(10,Math.round(m/10)*10)}m`:`${(m/1000).toFixed(m<10000?1:0)}km`;
+const myDist=p=>ui.me&&p&&p.lat!=null?distM(ui.me,p):null;
+function locate(){
+ if(!navigator.geolocation){ui.locErr='이 브라우저는 위치 기능을 지원하지 않아요';render();return;}
+ if(!window.isSecureContext){ui.locErr='위치는 https 주소(GitHub Pages)나 localhost에서만 쓸 수 있어요';render();return;}
+ ui.locBusy=true;ui.locErr='';render();
+ navigator.geolocation.getCurrentPosition(pos=>{ui.locBusy=false;ui.me={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};render();toast('내 위치를 찾았어요');},
+  err=>{ui.locBusy=false;ui.locErr=err.code===1?'위치 권한이 꺼져 있어요. 브라우저 주소창의 사이트 설정에서 위치를 허용해 주세요':'위치를 찾지 못했어요. 잠시 뒤 다시 눌러 주세요';render();},
+  {enableHighAccuracy:true,timeout:10000,maximumAge:30000});}
+function startRoute(p,mode){if(!p||p.lat==null)return;const me=ui.me;
+ const q=`${me?`slat=${me.lat}&slng=${me.lng}&sname=${encodeURIComponent('내 위치')}&`:''}dlat=${p.lat}&dlng=${p.lng}&dname=${encodeURIComponent(shortN(p.name))}&appname=${encodeURIComponent(location.origin&&location.origin!=='null'?location.origin:'show-info')}`;
+ const ua=navigator.userAgent;
+ if(/Android/i.test(ua)){location.href=`intent://route/${mode}?${q}#Intent;scheme=nmap;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;package=com.nhn.android.nmap;end`;return;}
+ if(/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)){const t=Date.now();location.href=`nmap://route/${mode}?${q}`;
+  setTimeout(()=>{if(Date.now()-t<2000&&!document.hidden)location.href=naverLink(shortN(p.name));},1500);return;}
+ window.open(naverLink(shortN(p.name)),'_blank','noopener');toast('컴퓨터에서는 네이버 지도의 길찾기를 눌러 주세요');}
+const ROUTE_MODES=[['walk','도보'],['public','대중교통'],['car','자동차']];
+function routeHTML(p){
+ if(p.kind==='near')return `<a class="btn secondary" style="text-decoration:none" href="${naverLink(p.search)}" target="_blank" rel="noopener">${ic('search',18)}&nbsp;네이버 지도에서 ${esc(p.name)} 고르기</a><span class="t-cap">상가 위치 데이터 연동 전이에요. 네이버 지도에서 가게를 고른 뒤 길찾기를 눌러 주세요</span>`;
+ if(p.lat==null)return '';
+ if(!ui.me)return `<button class="btn primary" data-act="locate" ${ui.locBusy?'disabled':''}>${ic('locate',18)}&nbsp;${ui.locBusy?'내 위치 찾는 중':'내 위치 허용하고 길 안내 받기'}</button>${ui.locErr?`<span class="err">${esc(ui.locErr)}</span>`:''}`;
+ const modes=p.kind==='parking'?[['car','자동차'],['walk','도보']]:ROUTE_MODES;
+ return `<span class="t-sm" style="color:var(--tp);font-weight:500">내 위치에서 직선 약 ${fmtDist(myDist(p))}</span><div style="display:grid;grid-template-columns:repeat(${modes.length},1fr);gap:6px">${modes.map(([m,l],i)=>`<button class="btn ${i===0?'primary':'secondary'}" style="height:42px" data-route="${m}" data-pid="${p.id}">${i===0?ic('nav',16)+'&nbsp;':''}${l}</button>`).join('')}</div><span class="t-cap">네이버 지도 앱에서 내 위치 출발 길 안내가 시작돼요</span>`;}
 const shortN=n=>n.replace(' (1호선)','');
 const placeById=id=>PLACES.find(p=>p.id===id);
 const naverLink=q=>`https://map.naver.com/p/search/${encodeURIComponent(q)}`;
@@ -453,7 +494,8 @@ function geocodeAll(){if(!(window.naver&&naver.maps&&naver.maps.Service))return 
 let MAPH=null;
 function disposeMap(){if(MAPH){try{MAPH.dispose();}catch(e){}MAPH=null;}}
 function focusHTML(p){if(!p)return '<span class="t-sm">목록이나 지도 표시를 누르면 위치와 설명이 나와요</span>';
- return `<span style="display:flex;align-items:center;gap:8px"><span class="tag">${KIND[p.kind]||''}</span><b style="font-size:15px;flex:1;min-width:0">${esc(p.name)}</b></span><span class="t-sm">${esc(p.desc||'')}</span>${p.lat==null?'<span class="t-cap">정확한 위치는 아직 등록 전이에요. 네이버 지도 검색으로 확인해 주세요</span>':p.approx?'<span class="t-cap">건물 주소 기준 위치예요</span>':''}<a class="t-sm" style="color:var(--tp);font-weight:700" href="${naverLink(shortN(p.name))}" target="_blank" rel="noopener">네이버 지도에서 보기 ↗</a>`;}
+ if(p.kind==='near')return `<span style="display:flex;align-items:center;gap:8px"><span class="tag">${KIND[p.kind]}</span><b style="font-size:15px;flex:1;min-width:0">${esc(p.name)}</b></span><span class="t-sm">${esc(p.desc||'')}</span>${routeHTML(p)}`;
+ return `<span style="display:flex;align-items:center;gap:8px"><span class="tag">${KIND[p.kind]||''}</span><b style="font-size:15px;flex:1;min-width:0">${esc(p.name)}</b></span><span class="t-sm">${esc(p.desc||'')}</span>${p.lat==null?'<span class="t-cap">정확한 위치는 아직 등록 전이에요. 네이버 지도 검색으로 확인해 주세요</span>':p.approx?'<span class="t-cap">건물 주소 기준 위치예요</span>':''}${routeHTML(p)}<a class="t-sm" style="color:var(--tp);font-weight:700" href="${naverLink(shortN(p.name))}" target="_blank" rel="noopener">네이버 지도에서 보기 ↗</a>`;}
 function mountMap(el,{kinds,focus=null,onFocus}){
  const pick=()=>PLACES.filter(p=>(p.kind==='dome'||kinds.includes(p.kind))&&p.lat!=null);
  let api={dispose(){},focus(){}};
@@ -467,9 +509,12 @@ function mountMap(el,{kinds,focus=null,onFocus}){
   for(let gy=Math.ceil(y0/250)*250;gy<y1;gy+=250)s+=`<line x1="${x0}" y1="${gy}" x2="${x1}" y2="${gy}" class="grid"/>`;
   const [ax,ay]=xy(placeById('gaebong')),[bx,by]=xy(placeById('guro'));s+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" class="rail"/>`;
   const [dx,dy]=xy(placeById('dome'));s+=`<ellipse cx="${dx}" cy="${dy}" rx="${fs*2.2}" ry="${fs*1.8}" class="domeshape"/>`;
+  const meIn=ui.me&&distM(ui.me,placeById('dome'))<3000;const fp=focus&&placeById(focus);
+  if(meIn&&fp&&fp.lat!=null){const [mx,my]=xy(ui.me),[px,py]=xy(fp);s+=`<line x1="${mx}" y1="${my}" x2="${px}" y2="${py}" class="routeline"/>`;}
   pts.forEach(p=>{const [x,y]=xy(p);const on=focus===p.id;s+=`<g class="pt ${p.kind} ${on?'on':''}" data-mfocus="${p.id}"><circle cx="${x}" cy="${y}" r="${fs*0.55}"/><text x="${x}" y="${y-fs*0.95}" text-anchor="middle" font-size="${fs*0.9}">${esc(shortN(p.name))}</text></g>`;});
+  if(meIn){const [mx,my]=xy(ui.me);s+=`<g class="pt me"><circle cx="${mx}" cy="${my}" r="${fs*0.5}"/><text x="${mx}" y="${my-fs*0.9}" text-anchor="middle" font-size="${fs*0.85}">내 위치</text></g>`;}
   s+=`<text x="${x1-fs*0.5}" y="${y1-fs*0.6}" text-anchor="end" font-size="${fs*0.7}" class="cap">250m 격자, 위가 북쪽</text></svg>`;
-  box.innerHTML=s+`<div class="mapnote">약도: ${esc(why||'')}</div>`;
+  box.innerHTML=s+`<div class="mapnote">약도: ${esc(why||'')}${ui.me&&!meIn?' 내 위치는 약도 범위 밖이에요':''}</div>`;
   api.focus=id=>{focus=id;drawSketch(why);};};
  loadNaver().then(ok=>{if(!box.isConnected)return;
   if(!ok){drawSketch(NAV.why);return;}
@@ -479,8 +524,16 @@ function mountMap(el,{kinds,focus=null,onFocus}){
    const marks={};
    pick().forEach(p=>{const m=new naver.maps.Marker({position:new naver.maps.LatLng(p.lat,p.lng),map,icon:{content:`<div class="mk mk-${p.kind}">${esc(shortN(p.name))}</div>`,anchor:new naver.maps.Point(0,0)}});
     naver.maps.Event.addListener(m,'click',()=>{api.focus(p.id);onFocus&&onFocus(p.id);});marks[p.id]=m;});
-   api.focus=id=>{const p=placeById(id);if(!p||p.lat==null)return;map.panTo(new naver.maps.LatLng(p.lat,p.lng));if(map.getZoom()<16)map.setZoom(16,true);
-    Object.entries(marks).forEach(([k,m])=>{const el=m.getElement&&m.getElement();if(el)el.classList.toggle('on',k===id);});};
+   let meMk=null,line=null;
+   if(ui.me){meMk=new naver.maps.Marker({position:new naver.maps.LatLng(ui.me.lat,ui.me.lng),map,zIndex:200,icon:{content:'<div class="mk mk-me">내 위치</div>',anchor:new naver.maps.Point(0,0)}});}
+   api.focus=id=>{const p=placeById(id);
+    Object.entries(marks).forEach(([k,m])=>{const el=m.getElement&&m.getElement();if(el)el.classList.toggle('on',k===id);});
+    if(line){line.setMap(null);line=null;}
+    if(!p||p.lat==null){if(meMk)map.panTo(meMk.getPosition());return;}
+    const to=new naver.maps.LatLng(p.lat,p.lng);
+    if(meMk){line=new naver.maps.Polyline({map,path:[meMk.getPosition(),to],strokeColor:'#0a0a0a',strokeWeight:3,strokeOpacity:.8,strokeStyle:'shortdash'});
+     const a=ui.me;map.fitBounds(new naver.maps.LatLngBounds(new naver.maps.LatLng(Math.min(a.lat,p.lat),Math.min(a.lng,p.lng)),new naver.maps.LatLng(Math.max(a.lat,p.lat),Math.max(a.lng,p.lng))),{top:50,right:40,bottom:50,left:40});return;}
+    map.panTo(to);if(map.getZoom()<16)map.setZoom(16,true);};
    if(focus)api.focus(focus);
    api.dispose=()=>{try{map.destroy();}catch(e){}};});});
  return {dispose(){api.dispose();},focus(id){focus=id;api.focus(id);}};}
@@ -492,7 +545,7 @@ try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(S,JSON.parse(raw)
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){try{localStorage.setItem(KEY,JSON.stringify({...S,posts:S.posts.map(p=>({...p,img:null}))}));}catch(e2){}}};
 S.posts=(S.posts||[]).map(p=>Object.assign({status:'공개',venue:'gocheok',sec:p.sec||p.zone},p,p.status==='검수 중'?{status:'공개'}:{}));
 let stack=[S.joined?'home':'start'];
-let ui={mset:'전체',mfocus:'guil',mapKinds:null,mapTitle:'',sec:null,floor:3,vmode:'3d',hgt:165,f3:0,rating:0,consent:false,_mount:null,zone:'312',stand:'앞쪽',vtab:'입장',ctab:'시야 후기',sel:'A',img:null,tags:new Set(['무대 정면']),agree:[true,true,true,false],q:'',reviewImg:null};
+let ui={mset:'전체',mfocus:'guil',mapKinds:null,mapTitle:'',sec:null,floor:3,vmode:'3d',hgt:165,f3:0,rating:0,consent:false,_mount:null,zone:'312',stand:'앞쪽',vtab:'입장',ctab:'시야 후기',sel:'A',img:null,tags:new Set(['무대 정면']),agree:[true,true,true,false],q:'',reviewImg:null,me:null,locBusy:false,locErr:''};
 
 const app=document.getElementById('app');
 const cur=()=>stack[stack.length-1];
@@ -513,6 +566,7 @@ const hdr=(title,{backBtn=false,venue=false,bell=false}={})=>`<header class="hdr
  ${backBtn?`<button class="ibtn" data-act="back" aria-label="뒤로">${ic('chevron-left',26)}</button>`:''}
  ${venue?`<button class="venue-btn" data-go="venue" aria-label="공연장 바꾸기, 지금 ${esc(title)}"><h1>${esc(title)}</h1>${ic('chevron-down',22)}</button>`:`<h1>${esc(title)}</h1>`}
  ${bell?`<button class="ibtn" data-act="bell" aria-label="알림">${ic('bell',22)}</button>`:''}
+ ${backBtn?'':`<button class="ibtn" data-go="my" aria-label="마이페이지">${ic('user',22)}</button>`}
 </header>`;
 const TABS=[['home','홈','home'],['sight','시야','eye'],['place','공연장','pin'],['move','이동','train'],['comm','커뮤니티','chat']];
 const tabbar=active=>`<nav class="tabbar" aria-label="주요 메뉴">${TABS.map(([v,l,i])=>`<button class="tab" data-tab="${v}" ${v===active?'aria-current="page"':''}>${ic(i,22)}<span>${l}</span></button>`).join('')}</nav>`;
@@ -700,18 +754,25 @@ place:()=>{const hall=standing();const v=V();const t=S.ticket;const my=hall?null
  return hdr('공연장')+`<div class="body" style="gap:12px"><span class="t-acc">${esc(v.name)} 시설 구조</span>${map3d}${chips(['입장','시설','상권','주차'],ui.vtab,'vtab')}${inner}</div>`+tabbar('place');},
 
 move:()=>{const sh=show();const arr=addMin(sh.end,23);
- const sets={'전체':['subway','bus','parking'],'지하철':['subway'],'버스':['bus'],'주차':['parking']};const kinds=sets[ui.mset];
+ const sets={'전체':['subway','bus','parking'],'지하철':['subway'],'버스':['bus'],'주차':['parking'],'주변 상권':['near']};const kinds=sets[ui.mset];
  const list=PLACES.filter(p=>kinds.includes(p.kind));
+ if(ui.me)list.sort((a,b)=>(myDist(a)??Infinity)-(myDist(b)??Infinity));
+ const locCard=ui.me?`<div class="row" style="padding:12px 14px;gap:10px">${ic('locate',20)}<span class="grow"><b style="font-size:14px">내 위치 기준으로 보는 중</b><span class="t-cap">가까운 순으로 정렬했어요. 정확도 약 ${fmtDist(ui.me.acc||0)}, 위치는 저장하지 않아요</span></span><button class="tag" data-act="locate">다시 찾기</button></div>`
+  :`<div class="card line" style="gap:8px"><b style="font-size:14px">내 위치에서 길 안내</b><span class="t-sm">위치를 허용하면 가까운 순으로 보여 주고, 고른 곳까지 네이버 지도로 길 안내를 시작해요</span><button class="btn primary" data-act="locate" ${ui.locBusy?'disabled':''}>${ic('locate',18)}&nbsp;${ui.locBusy?'내 위치 찾는 중':'내 위치 허용하기'}</button>${ui.locErr?`<span class="err">${esc(ui.locErr)}</span>`:''}<span class="t-cap">위치는 길 안내에만 쓰고 저장하지 않아요</span></div>`;
+ const tail=p=>{const d=myDist(p);return p.kind==='near'?ic('search',18):d!=null?`<span class="t-sm" style="color:var(--tp);font-weight:700;font-variant-numeric:tabular-nums">${fmtDist(d)}</span>`:p.lat==null?'<span class="tag">위치 확인 필요</span>':ic('pin',18);};
+ const kindIc=k=>k==='subway'?'train':k==='bus'?'bus':k==='near'?'store':'car';
  if(!list.some(p=>p.id===ui.mfocus))ui.mfocus=list[0]?list[0].id:null;
  ui._mount=()=>{const el=document.getElementById('mbox');MAPH=mountMap(el,{kinds,focus:ui.mfocus,onFocus:setFocus});};
  return hdr('이동')+`<div class="body" style="gap:12px">
+  ${locCard}
   <div class="chips" role="group">${Object.keys(sets).map(k=>`<button class="chip" data-mset="${k}" aria-pressed="${ui.mset===k}">${k}</button>`).join('')}</div>
   <div class="mapbox" id="mbox"></div>
   <div class="card line focus" id="mfocus">${focusHTML(placeById(ui.mfocus))}</div>
   <div class="card inv" style="padding:16px 18px;gap:2px"><span class="m" style="font-size:12px;font-weight:500">${esc(sh.name)} 종료 예정 ${sh.end}</span><span style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">구일역 도착 약 ${arr}</span><span style="font-size:12px">퇴장 약 20분 + 2번 출구까지 도보 약 3분. 막차 시각은 코레일 시간표 연동 예정</span></div>
   <div class="row" style="padding:14px"><span class="grow"><span style="font-weight:500">고척돔 주변 지금</span><span class="t-cap">서울시 실시간 도시데이터 '고척돔', 5분마다 갱신 (지금은 예시)</span></span><b style="font-size:16px">붐빔</b></div>
   <h2>${ui.mset==='전체'?'귀가 방법':ui.mset}</h2>
-  ${list.map(p=>`<button class="row" data-mfocus="${p.id}" style="${ui.mfocus===p.id?'background:var(--card);border:1px solid var(--bstrong)':''}">${ic(p.kind==='subway'?'train':p.kind==='bus'?'bus':'car',22)}<span class="grow"><b>${esc(p.name)}</b><span class="t-sm">${esc(p.desc)}</span></span>${ic('pin',18)}</button>`).join('')}
+  ${list.map(p=>`<button class="row" data-mfocus="${p.id}" style="${ui.mfocus===p.id?'background:var(--card);border:1px solid var(--bstrong)':''}">${ic(kindIc(p.kind),22)}<span class="grow"><b>${esc(p.name)}</b><span class="t-sm">${esc(p.desc)}</span></span>${tail(p)}</button>`).join('')}
+  ${kinds.includes('near')?'<span class="t-cap">상가 목록과 위치는 소상공인시장진흥공단 상가정보로 연동할 예정이에요. 지금은 네이버 지도 검색으로 연결해요</span>':''}
   ${kinds.includes('parking')?'<span class="t-cap">공연 당일 고척돔 주차장은 일반 주차 불가. 주차장 정보 출처: 서울시설공단</span>':''}
   <span class="t-cap">출처: 서울시설공단 고척스카이돔 교통 안내. 지도: 네이버 지도</span>
   <button class="btn ${S.alarm?'secondary':'primary'}" data-act="alarm">${S.alarm?'귀가 알림 설정됨 (누르면 해제)':'공연 종료 10분 전 귀가 알림 받기'}</button>
@@ -735,6 +796,25 @@ comm:()=>{const sh=show();
  else if(ui.ctab==='동행'){inner=`<div class="card line"><b>동행 안전 수칙</b><span class="t-sm">연락처는 자동으로 가려져요. 앱 안 메시지로만 대화하고, 공공장소에서 만나요. 신고하면 바로 숨겨져요</span></div><div class="card line"><span class="t-sm">글쓰기와 댓글은 이 공연 티켓을 등록한 사람만 할 수 있어요</span></div>`;}
  else{inner=`${row('MD 현황','품목, 상태, 대기시간 제보 (30분 지나면 흐리게)','box')}${row('공연 공지','입장 시각, 반입 금지 물품','bell')}`;}
  return hdr('커뮤니티')+`<div class="body" style="gap:12px">${chips(['시야 후기','동행','공연 정보'],ui.ctab,'ctab')}${inner}<div class="spacer"></div>${ui.ctab==='시야 후기'?'<button class="btn primary" data-act="write">내 좌석 시야 등록하기</button>':''}</div>`+tabbar('comm');},
+
+my:()=>{const t=S.ticket;const mine=S.posts;
+ return hdr('마이페이지',{backBtn:true})+`<div class="body" style="gap:12px">
+  <div class="row" style="padding:18px;gap:14px"><span class="logo" style="width:52px;height:52px;border-radius:26px">${ic('user',26)}</span><span class="grow"><b style="font-size:18px">${S.joined?esc(S.nick):'둘러보는 중'}</b><span class="t-sm">${S.joined?'관심 공연장: '+esc(V().name):'가입하면 티켓과 후기를 저장할 수 있어요'}</span></span></div>
+  ${S.joined?'':'<button class="btn primary" data-go="signup">가입하기</button>'}
+  <h2>내 티켓</h2>
+  ${t?`<div class="card line" style="gap:6px"><span style="display:flex;align-items:center;gap:8px"><b style="flex:1;min-width:0;font-size:15px">${esc(show().name)}</b><span class="status">${t.verified?'인증 완료':'인증 대기'}</span></span><span class="t-sm">${esc(seatText(t))}</span></div>${row('티켓 다시 등록','좌석이 바뀌었거나 다른 공연을 볼 때','ticket','ticket')}`
+   :row('내 티켓 등록','등록하면 내 좌석 기준으로 안내해요','ticket','ticket')}
+  <h2>내가 올린 시야 ${mine.length}개</h2>
+  ${mine.length?mine.map(p=>`<div class="row" style="padding:12px"><span class="thumb">${p.img?`<img src="${p.img}" alt="">`:ic('image',22)}</span><span class="grow" style="gap:3px"><b style="font-size:13px">${esc(p.seat)}</b><span style="font-size:13px">${esc(String(p.t).split('\n')[0])}</span><span class="t-cap">${p.rating?'★'.repeat(p.rating)+', ':''}${esc(p.status||'공개')}</span></span></div>`).join('')
+   :'<div class="card"><span class="t-sm">아직 올린 시야가 없어요. 티켓을 인증하면 내 좌석 시야를 올릴 수 있어요</span></div>'}
+  <h2>설정</h2>
+  <button class="row" data-act="${ui.me?'locoff':'locate'}">${ic('locate',22)}<span class="grow"><b>내 위치 사용</b><span class="t-sm">${ui.me?'켜짐, 이번 접속에서만 쓰고 저장하지 않아요':'꺼짐, 길 안내를 쓸 때 켜요'}</span></span><span class="tag">${ui.me?'끄기':'켜기'}</span></button>
+  <button class="row" data-act="alarm">${ic('bell',22)}<span class="grow"><b>귀가 알림</b><span class="t-sm">공연 종료 10분 전에 귀가 방법 안내</span></span><span class="tag">${S.alarm?'켜짐':'꺼짐'}</span></button>
+  ${row('공연장 바꾸기',V().name,'pin','venue')}
+  <div class="spacer"></div>
+  <span class="t-cap">가입, 티켓, 시야는 이 브라우저에만 저장돼요 (데모)</span>
+  <button class="link-c" data-act="reset">저장된 정보 모두 지우기</button>
+ </div>`;},
 
 venue:()=>{const q=ui.q.trim();const list=Object.entries(VENUES).filter(([k,v])=>!q||v.name.includes(q));
  return hdr('공연장 선택',{backBtn:true})+`<div class="body" style="gap:12px">
@@ -782,6 +862,7 @@ app.addEventListener('click',e=>{
  const b=e.target.closest('button');if(!b)return;
  const d=b.dataset;
  if(d.f3n!==undefined)return;
+ if(d.route){startRoute(placeById(d.pid),d.route);return;}
  if(d.mset){ui.mset=d.mset;ui.mfocus=null;render();return;}
  if(d.mapgo){const T={parking:['주차장',['parking']],food:['주변 상권',['food']],dome:['고척스카이돔',['dome']],subway:['오는 길',['subway','bus']]};const [t,k]=T[d.mapgo];ui.mapTitle=t;ui.mapKinds=k;ui.mfocus=d.mf||null;go('mapview');return;}
  if(d.go){if(d.go==='myseat'){const m=mySec();if(!m){toast('구조도에 있는 좌석을 등록하면 볼 수 있어요');tabTo('sight');return;}ui.sec=m;ui.vmode='3d';const pp=parseSec(m);ui.floor=pp.ground?0:pp.f;stack=['sight','view'];render();return;}
@@ -815,6 +896,9 @@ app.addEventListener('click',e=>{
   case 'write':ui.reviewImg=null;ui.draft='';ui.rating=0;ui.consent=false;ui.tags=new Set();go('upload');break;
   case 'view':ui.sec=d.s;ui.vmode='3d';go('view');break;
   case 'reset3d':R3&&R3.reset();break;
+  case 'locate':locate();break;
+  case 'locoff':ui.me=null;ui.locErr='';render();toast('내 위치를 지웠어요. 브라우저 권한은 사이트 설정에서 끌 수 있어요');break;
+  case 'reset':if(!confirm('가입 정보, 티켓, 올린 시야를 이 브라우저에서 모두 지울까요?'))return;try{localStorage.removeItem(KEY);}catch(e){}location.reload();break;
   case 'consent':ui.draft=(document.getElementById('rtext')||{}).value||'';ui.consent=!ui.consent;render();break;
   case 'post':{const txt=document.getElementById('rtext').value.trim()||'한 줄 후기 없음';
     if(!(ui.reviewImg&&ui.rating&&ui.consent)){toast('사진, 별점, 동의가 필요해요');return;}
