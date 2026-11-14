@@ -117,7 +117,7 @@ textarea.input{min-height:110px;resize:vertical}
 .body>.spacer{flex-shrink:1}
 .mapbox{position:relative;height:280px;border-radius:12px;overflow:hidden;background:var(--muted);border:1px solid var(--border);flex:none}
 .mapcanvas{position:absolute;inset:0;width:100%;height:100%}
-.mapcanvas svg{width:100%;height:100%;display:block;background:var(--card)}
+.mapcanvas>svg{width:100%;height:100%;display:block;background:var(--card)}
 .mapcanvas .grid{stroke:var(--border);stroke-width:2}
 .mapcanvas .rail{stroke:var(--mid);stroke-width:14;stroke-dasharray:40 24}
 .mapcanvas .domeshape{fill:var(--ph);stroke:var(--inv);stroke-width:6}
@@ -137,7 +137,8 @@ textarea.input{min-height:110px;resize:vertical}
 .mapcanvas .rcase{fill:none;stroke:var(--card);stroke-width:22;stroke-linecap:round;stroke-linejoin:round}
 .mapcanvas .rmain{fill:none;stroke:var(--inv);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
 .mapcanvas .rwalk{fill:none;stroke:var(--ts);stroke-width:8;stroke-dasharray:4 14;stroke-linecap:round}
-.mk-step{transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#fafafa;color:#0a0a0a;border:2px solid #0a0a0a;font:700 11px/16px "Noto Sans KR",sans-serif;text-align:center}
+.mk-step{transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#fafafa;border:2px solid #0a0a0a}
+.mk-step.on{width:22px;height:22px;background:#0a0a0a;color:#fafafa;border-color:#fafafa;box-shadow:0 0 0 2px #0a0a0a;font:700 11px/18px "Noto Sans KR",sans-serif;text-align:center}
 .mk.mk-stop{font-size:11px;padding:2px 7px;background:#fafafa}
 .rsum{display:flex;align-items:baseline;gap:8px}
 .rsum b{font-size:22px;font-variant-numeric:tabular-nums}
@@ -550,7 +551,7 @@ function routeSegs(r){if(!r||r.status!=='ok')return [];
  if(r.mode==='walk')return [{k:'main',pts:r.data.path}];
  return r.data.opts[r.opt].legs.map(l=>({k:l.k==='walk'?'walk':'main',pts:l.pts||[]}));}
 function routeMarks(r){if(!r||r.status!=='ok')return [];
- if(r.mode==='walk')return r.data.steps.map((s,i)=>({lat:s.lat,lng:s.lng,i})).filter((s,i,a)=>i>0&&i<a.length-1).map(s=>({lat:s.lat,lng:s.lng,html:`<div class="mk-step">${s.i}</div>`}));
+ if(r.mode==='walk')return r.data.steps.map((s,i)=>({lat:s.lat,lng:s.lng,i})).filter((s,i,a)=>i>0&&i<a.length-1).map(s=>({lat:s.lat,lng:s.lng,html:r.step===s.i?`<div class="mk-step on">${s.i}</div>`:'<div class="mk-step"></div>'}));
  const out=[];r.data.opts[r.opt].legs.forEach(l=>{if(l.k==='walk'||!l.pts.length)return;
   out.push({lat:l.pts[0][0],lng:l.pts[0][1],html:`<div class="mk mk-stop">${esc(l.from)} 승차</div>`},{lat:l.pts[l.pts.length-1][0],lng:l.pts[l.pts.length-1][1],html:`<div class="mk mk-stop">${esc(l.to)} 하차</div>`});});
  return out;}
@@ -664,15 +665,15 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
    let meMk=null,rOv=[];
    if(ui.me){meMk=new naver.maps.Marker({position:new naver.maps.LatLng(ui.me.lat,ui.me.lng),map,zIndex:200,icon:{content:'<div class="mk mk-me">내 위치</div>',anchor:new naver.maps.Point(0,0)}});}
    /* 경로: 흰 테두리 + 검은 선. 대중교통의 걷는 구간은 회색 점선 */
-   const drawRoute=()=>{rOv.forEach(o=>o.setMap(null));rOv=[];const r=ui.route;
+   const drawRoute=(fit=true)=>{rOv.forEach(o=>o.setMap(null));rOv=[];const r=ui.route;
     if(!r||r.status!=='ok'||r.pid!==focus)return false;
     const LL=a=>new naver.maps.LatLng(a[0],a[1]),b=new naver.maps.LatLngBounds();
     routeSegs(r).forEach(s=>{if(s.pts.length<2)return;const path=s.pts.map(LL);path.forEach(x=>b.extend(x));const w=s.k==='walk';
      rOv.push(new naver.maps.Polyline({map,path,strokeColor:'#fafafa',strokeWeight:w?7:10,strokeOpacity:1,strokeLineCap:'round',strokeLineJoin:'round'}));
      rOv.push(new naver.maps.Polyline({map,path,strokeColor:w?'#525252':'#0a0a0a',strokeWeight:w?4:6,strokeOpacity:1,strokeStyle:w?'shortdot':'solid',strokeLineCap:'round',strokeLineJoin:'round'}));});
     routeMarks(r).forEach(m=>rOv.push(new naver.maps.Marker({position:LL([m.lat,m.lng]),map,zIndex:120,icon:{content:m.html,anchor:new naver.maps.Point(0,0)}})));
-    if(meMk)b.extend(meMk.getPosition());map.fitBounds(b,{top:40,right:30,bottom:40,left:30});return true;};
-   api.pan=(lat,lng)=>{map.panTo(new naver.maps.LatLng(lat,lng));if(map.getZoom()<17)map.setZoom(17,true);};
+    if(fit){if(meMk)b.extend(meMk.getPosition());map.fitBounds(b,{top:40,right:30,bottom:40,left:30});}return true;};
+   api.pan=(lat,lng)=>{drawRoute(false);map.panTo(new naver.maps.LatLng(lat,lng));if(map.getZoom()<17)map.setZoom(17,true);};
    api.focus=id=>{const p=placeById(id);focus=id;iw.close();layout();
     if(drawRoute())return;
     if(!p||p.lat==null){if(meMk)map.panTo(meMk.getPosition());return;}
@@ -1018,7 +1019,7 @@ app.addEventListener('click',e=>{
  if(d.route){startRoute(placeById(d.pid),d.route);return;}
  if(d.iroute){loadRoute(d.pid,d.iroute);return;}
  if(d.ropt!==undefined&&ui.route&&ui.route.data){ui.route.opt=+d.ropt;refreshRoute();const k=ui.route.key;ensureLane(ui.route.data.opts[ui.route.opt]).then(()=>{if(ui.route&&ui.route.key===k)MAPH&&MAPH.route();});return;}
- if(d.rstep!==undefined&&ui.route&&ui.route.data){const s=ui.route.data.steps[+d.rstep];if(s){MAPH&&MAPH.pan(s.lat,s.lng);const mb=document.getElementById('mbox');mb&&mb.scrollIntoView({behavior:'smooth',block:'nearest'});}return;}
+ if(d.rstep!==undefined&&ui.route&&ui.route.data){const s=ui.route.data.steps[+d.rstep];if(s){ui.route.step=+d.rstep;MAPH&&MAPH.pan(s.lat,s.lng);const mb=document.getElementById('mbox');mb&&mb.scrollIntoView({behavior:'smooth',block:'nearest'});}return;}
  if(d.act==='rclose'){ui.route=null;refreshRoute();return;}
  if(d.act==='rall'&&ui.route){ui.route.all=true;setFocus(ui.mfocus);return;}
  if(d.act==='shops'){ui.mset='주변 상권';ui.scat=d.scat||'전체';ui.slim=20;ui.mfocus=null;tabTo('move');return;}
