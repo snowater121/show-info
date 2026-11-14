@@ -136,7 +136,7 @@ textarea.input{min-height:110px;resize:vertical}
 .mapcanvas .pt.me circle{fill:var(--inv);stroke:var(--card);stroke-width:8}
 .mapcanvas .routeline{stroke:var(--inv);stroke-width:10;stroke-dasharray:30 20}
 .on>.mk,.mk.on{background:#0a0a0a;color:#fafafa;outline:3px solid #fafafa;outline-offset:-1px}
-.mk-shop{font-size:11px;padding:2px 7px}
+.mk.mk-shop{font-size:11px;padding:2px 7px}
 .mk-n{display:inline-block;margin-left:5px;padding:0 5px;border-radius:999px;background:#0a0a0a;color:#fafafa;font-size:10px;line-height:15px;vertical-align:1px}
 .mk-subway .mk-n,.mk-dome .mk-n,.mk.on .mk-n{background:#fafafa;color:#0a0a0a}
 .mk-dot{transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#fafafa;border:2px solid #0a0a0a;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
@@ -557,7 +557,11 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
      m.setIcon({content:lead?`<div class="mk mk-${p.kind}${on?' on':''}">${esc(shortN(p.name))}${g.items.length>1?`<span class="mk-n">+${g.items.length-1}</span>`:''}</div>`:`<div class="mk-dot mk-${p.kind}"></div>`,anchor:new naver.maps.Point(0,0)});
      m.setZIndex(lead?(on?150:100-g.rank):10);}));};
    const pickAt=id=>{const g=grpOf[id];if(!g||g.items.length<2||g.items[0].id!==id)return false;
-    if(map.getZoom()>=18){iw.setContent(`<div class="mk-list" role="list">${g.items.map(p=>`<button data-mfocus="${p.id}"><b>${esc(shortN(p.name))}</b><span>${esc(p.cat||KIND[p.kind]||'')}</span></button>`).join('')}</div>`);iw.open(map,marks[id]);return true;}
+    if(map.getZoom()>=18){/* 네이버 지도가 창 안 클릭을 막으므로 #app 위임 대신 창에 직접 연결 */
+     const el=document.createElement('div');el.className='mk-list';el.setAttribute('role','list');
+     el.innerHTML=g.items.map(p=>`<button data-pick="${p.id}"><b>${esc(shortN(p.name))}</b><span>${esc(p.cat||KIND[p.kind]||'')}</span></button>`).join('');
+     el.addEventListener('click',e=>{const b=e.target.closest('[data-pick]');if(!b)return;e.stopPropagation();api.focus(b.dataset.pick);onFocus&&onFocus(b.dataset.pick);});
+     iw.setContent(el);iw.open(map,marks[id]);return true;}
     const b=new naver.maps.LatLngBounds();g.items.forEach(p=>b.extend(new naver.maps.LatLng(p.lat,p.lng)));map.fitBounds(b,{top:60,right:60,bottom:60,left:60});if(map.getZoom()>18)map.setZoom(18,true);return true;};
    pick().forEach(p=>{const m=new naver.maps.Marker({position:new naver.maps.LatLng(p.lat,p.lng),map,icon:{content:`<div class="mk mk-${p.kind}">${esc(shortN(p.name))}</div>`,anchor:new naver.maps.Point(0,0)}});
     naver.maps.Event.addListener(m,'click',()=>{if(pickAt(p.id))return;api.focus(p.id);onFocus&&onFocus(p.id);});marks[p.id]=m;});
