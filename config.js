@@ -6,7 +6,6 @@
 window.APP_CONFIG = {
   NAVER_CLIENT_ID: 'gl61r2i8ba',
   NAVER_KEY_PARAM: 'ncpKeyId'
-  
+  const TMAP_APP_KEY = 'IBgwbVdqxr6WVb0e6o4QUyGkgv7WwNb9kkmh8aF4';
+  const ODSAY_API_KEY = '3Hpf/DmkmiFTEVw4qYRVyw';
 };
-const TMAP_APP_KEY = 'IBgwbVdqxr6WVb0e6o4QUyGkgv7WwNb9kkmh8aF4';
-const ODSAY_API_KEY = '3Hpf/DmkmiFTEVw4qYRVyw';
