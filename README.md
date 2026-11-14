@@ -47,6 +47,7 @@ python3 -m http.server 8000
 - **Client Secret은 저장소에 절대 올리지 마세요.** 이 저장소는 공개 저장소라 누구나 볼 수 있습니다.
 - Client ID는 브라우저에 노출되는 값이라 공개되어도 괜찮지만, 등록한 웹 서비스 URL에서만 동작합니다.
 - 길찾기(Directions)처럼 Secret이 필요한 API는 서버(예: Vercel 서버 함수)에서만 호출해야 합니다.
+- 앱 안 경로 안내는 브라우저에서 바로 부르는 키를 씁니다. `config.js`의 `TMAP_APP_KEY`(TMAP API 보행자 경로), `ODSAY_API_KEY`(ODsay LAB 대중교통, 웹 URI에 `https://snowater121.github.io`, `http://localhost:8000` 등록). 공개되는 값이라 Tmap은 콘솔에서 사용량 한도를 걸어 두세요.
 - 무료 이용량은 대표 계정에만 있으니, 콘솔에서 일별·월별 이용 한도를 설정해 두세요.
 
 ## 데이터 출처

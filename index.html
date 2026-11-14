@@ -134,7 +134,19 @@ textarea.input{min-height:110px;resize:vertical}
 .mk-subway,.mk-dome,.on>.mk{background:#0a0a0a;color:#fafafa}
 .mk.mk-me{background:#0a0a0a;color:#fafafa;border-color:#fafafa;box-shadow:0 0 0 3px #0a0a0a,0 2px 6px rgba(0,0,0,.3)}
 .mapcanvas .pt.me circle{fill:var(--inv);stroke:var(--card);stroke-width:8}
-.mapcanvas .routeline{stroke:var(--inv);stroke-width:10;stroke-dasharray:30 20}
+.mapcanvas .rcase{fill:none;stroke:var(--card);stroke-width:22;stroke-linecap:round;stroke-linejoin:round}
+.mapcanvas .rmain{fill:none;stroke:var(--inv);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
+.mapcanvas .rwalk{fill:none;stroke:var(--ts);stroke-width:8;stroke-dasharray:4 14;stroke-linecap:round}
+.mk-step{transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:#fafafa;color:#0a0a0a;border:2px solid #0a0a0a;font:700 11px/16px "Noto Sans KR",sans-serif;text-align:center}
+.mk.mk-stop{font-size:11px;padding:2px 7px;background:#fafafa}
+.rsum{display:flex;align-items:baseline;gap:8px}
+.rsum b{font-size:22px;font-variant-numeric:tabular-nums}
+.rsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--border)}
+.rsteps li{border-bottom:1px solid var(--border)}
+.rsteps button,.rsteps.legs li{display:flex;align-items:center;gap:10px;width:100%;padding:10px 2px;text-align:left;font-size:13px;color:var(--tp)}
+.rsteps .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rsteps .rno{flex:none;width:18px;font-size:11px;color:var(--ts);font-variant-numeric:tabular-nums}
+.rsteps .leg-walk{color:var(--ts)}
 .on>.mk,.mk.on{background:#0a0a0a;color:#fafafa;outline:3px solid #fafafa;outline-offset:-1px}
 .mk.mk-shop{font-size:11px;padding:2px 7px}
 .mk-n{display:inline-block;margin-left:5px;padding:0 5px;border-radius:999px;background:#0a0a0a;color:#fafafa;font-size:10px;line-height:15px;vertical-align:1px}
@@ -209,7 +221,15 @@ const ICONS={
  toilet:'<circle cx="12" cy="5" r="2"/><path d="M9 22v-6H7l2-7h6l2 7h-2v6"/>',
  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
  locate:'<path d="M2 12h3"/><path d="M19 12h3"/><path d="M12 2v3"/><path d="M12 19v3"/><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/>',
- nav:'<path d="M3 11 22 2l-9 19-2-8Z"/>'
+ nav:'<path d="M3 11 22 2l-9 19-2-8Z"/>',
+ walk:'<path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/>',
+ 'arrow-up':'<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+ 'turn-left':'<path d="M20 20v-7a4 4 0 0 0-4-4H4"/><path d="M9 14 4 9l5-5"/>',
+ 'turn-right':'<path d="m15 14 5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/>',
+ uturn:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+ flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+ cross:'<path d="M4 4v16"/><path d="M20 4v16"/><path d="M9 6h6"/><path d="M9 10h6"/><path d="M9 14h6"/><path d="M9 18h6"/>',
+ stairs:'<path d="M4 20h4v-4h4v-4h4V8h4"/>'
 };
 const ic=(n,s=20)=>`<svg class="ic" style="--s:${s}px" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -457,9 +477,8 @@ function loadShops(){
 
 /* ---------- 내 위치와 길 안내 ----------
  * 위치는 브라우저 권한으로 받고, 이번 접속(ui.me)에서만 쓴다. localStorage에 좌표를 저장하지 않는다.
- * 앱 안에서는 내 위치와 목적지를 지도에 표시하고 직선 거리만 보여 준다.
- * 실제 경로 안내는 네이버 지도 앱(URL Scheme nmap://route/...)으로 넘긴다.
- * 앱 안에서 경로선을 그리려면 Directions API(Client Secret 필요)를 서버에서 호출해야 해서 이번 단계에서는 하지 않음 */
+ * 앱 안 경로: 도보는 Tmap 보행자 경로, 대중교통은 ODsay 대중교통 길찾기 (아래 '앱 안 경로 안내').
+ * 자동차와 실시간 음성 안내는 네이버 지도 앱(URL Scheme nmap://route/...)으로 넘긴다. */
 const distM=(a,b)=>{const R=6371000,r=x=>x*Math.PI/180;const dl=r(b.lat-a.lat),dn=r(b.lng-a.lng);const h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
 const fmtDist=m=>m<1000?`${Math.max(10,Math.round(m/10)*10)}m`:`${(m/1000).toFixed(m<10000?1:0)}km`;
 const myDist=p=>ui.me&&p&&p.lat!=null?distM(ui.me,p):null;
@@ -467,7 +486,7 @@ function locate(){
  if(!navigator.geolocation){ui.locErr='이 브라우저는 위치 기능을 지원하지 않아요';render();return;}
  if(!window.isSecureContext){ui.locErr='위치는 https 주소(GitHub Pages)나 localhost에서만 쓸 수 있어요';render();return;}
  ui.locBusy=true;ui.locErr='';render();
- navigator.geolocation.getCurrentPosition(pos=>{ui.locBusy=false;ui.me={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};render();toast('내 위치를 찾았어요');},
+ navigator.geolocation.getCurrentPosition(pos=>{ui.locBusy=false;ui.route=null;ui.me={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};render();toast('내 위치를 찾았어요');},
   err=>{ui.locBusy=false;ui.locErr=err.code===1?'위치 권한이 꺼져 있어요. 브라우저 주소창의 사이트 설정에서 위치를 허용해 주세요':'위치를 찾지 못했어요. 잠시 뒤 다시 눌러 주세요';render();},
   {enableHighAccuracy:true,timeout:10000,maximumAge:30000});}
 function startRoute(p,mode){if(!p||p.lat==null)return;const me=ui.me;
@@ -482,8 +501,82 @@ function routeHTML(p){
  if(p.kind==='near')return `<a class="btn secondary" style="text-decoration:none" href="${naverLink(p.search)}" target="_blank" rel="noopener">${ic('search',18)}&nbsp;네이버 지도에서 ${esc(p.name)} 고르기</a><span class="t-cap">상가 위치 데이터 연동 전이에요. 네이버 지도에서 가게를 고른 뒤 길찾기를 눌러 주세요</span>`;
  if(p.lat==null)return '';
  if(!ui.me)return `<button class="btn primary" data-act="locate" ${ui.locBusy?'disabled':''}>${ic('locate',18)}&nbsp;${ui.locBusy?'내 위치 찾는 중':'내 위치 허용하고 길 안내 받기'}</button>${ui.locErr?`<span class="err">${esc(ui.locErr)}</span>`:''}`;
- const modes=p.kind==='parking'?[['car','자동차'],['walk','도보']]:p.kind==='shop'?[['walk','도보'],['public','대중교통']]:ROUTE_MODES;
- return `<span class="t-sm" style="color:var(--tp);font-weight:500">내 위치에서 직선 약 ${fmtDist(myDist(p))}</span><div style="display:grid;grid-template-columns:repeat(${modes.length},1fr);gap:6px">${modes.map(([m,l],i)=>`<button class="btn ${i===0?'primary':'secondary'}" style="height:42px" data-route="${m}" data-pid="${p.id}">${i===0?ic('nav',16)+'&nbsp;':''}${l}</button>`).join('')}</div><span class="t-cap">네이버 지도 앱에서 내 위치 출발 길 안내가 시작돼요</span>`;}
+ const d=myDist(p),r=ui.route&&ui.route.pid===p.id?ui.route:null;
+ const head=`<span class="t-sm" style="color:var(--tp);font-weight:500">내 위치에서 직선 약 ${fmtDist(d)}</span>`;
+ const modes=p.kind==='parking'?[['walk','도보']]:[['walk','도보'],['public','대중교통']];
+ if(!r){const first=p.kind!=='parking'&&d>1500?'public':'walk';
+  return head+`<div style="display:grid;grid-template-columns:repeat(${modes.length+(p.kind==='parking'?1:0)},1fr);gap:6px">${p.kind==='parking'?`<button class="btn primary" style="height:42px" data-route="car" data-pid="${p.id}">${ic('car',16)}&nbsp;자동차</button>`:''}${modes.map(([m,l])=>`<button class="btn ${m===first&&p.kind!=='parking'?'primary':'secondary'}" style="height:42px" data-iroute="${m}" data-pid="${p.id}">${ic(m==='walk'?'walk':'train',16)}&nbsp;${l} 경로</button>`).join('')}</div><span class="t-cap">${p.kind==='parking'?'자동차는 네이버 지도 앱으로 안내해요. ':''}경로를 누르면 지도에 길과 단계별 안내를 보여 줘요</span>`;}
+ return head+`<div class="chips" role="group">${modes.map(([m,l])=>`<button class="chip" data-iroute="${m}" data-pid="${p.id}" aria-pressed="${r.mode===m}">${l}</button>`).join('')}<button class="chip" data-act="rclose">경로 닫기</button></div>${routeBody(r,p)}`;}
+
+/* ---------- 앱 안 경로 안내 ----------
+ * 도보: Tmap 보행자 경로 API, 대중교통: ODsay 대중교통 길찾기 API (+ loadLane으로 노선 모양).
+ * 둘 다 브라우저에서 바로 부르는 키(config.js). ODsay는 등록한 주소에서만 동작, Tmap은 콘솔에서 사용량 한도로 관리.
+ * 내 위치는 출발 좌표로 두 서비스에만 보내고 저장하지 않는다. 결과는 이번 접속 동안만 ROUTE_CACHE에 둔다 */
+const ROUTE_CACHE={};
+const TURN={11:'arrow-up',12:'turn-left',13:'turn-right',14:'uturn',16:'turn-left',17:'turn-left',18:'turn-right',19:'turn-right',125:'stairs',126:'stairs',127:'stairs',128:'arrow-up',129:'stairs',200:'nav',201:'flag',211:'cross',212:'cross',213:'cross',214:'cross',215:'cross',216:'cross',217:'cross',218:'stairs'};
+const fmtMin=s=>{const m=Math.max(1,Math.round(s/60));return m<60?`${m}분`:`${Math.floor(m/60)}시간 ${m%60?m%60+'분':''}`;};
+async function fetchWalk(from,to,toName){
+ const key=(window.APP_CONFIG||{}).TMAP_APP_KEY;if(!key)throw new Error('config.js에 Tmap 키가 없어요');
+ const r=await fetch('https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json',{method:'POST',headers:{appKey:key,'Content-Type':'application/json',Accept:'application/json'},
+  body:JSON.stringify({startX:from.lng,startY:from.lat,endX:to.lng,endY:to.lat,startName:'내 위치',endName:toName,reqCoordType:'WGS84GEO',resCoordType:'WGS84GEO',searchOption:'0'})});
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok||!j.features||!j.features.length)throw new Error((j.error&&j.error.message)||`도보 경로를 받지 못했어요 (${r.status})`);
+ const head=j.features[0].properties,path=[],steps=[];
+ j.features.forEach(x=>{const g=x.geometry,pr=x.properties;
+  if(g.type==='LineString')g.coordinates.forEach(([lng,lat])=>{const l=path[path.length-1];if(!l||l[0]!==lat||l[1]!==lng)path.push([lat,lng]);});
+  else steps.push({lat:g.coordinates[1],lng:g.coordinates[0],ic:TURN[pr.turnType]||'arrow-up',type:pr.pointType,
+   text:pr.pointType==='SP'?`출발, ${pr.description}`:pr.pointType==='EP'?`${toName} 도착`:pr.description});});
+ return {dist:head.totalDistance,time:head.totalTime,path,steps};}
+async function fetchTransit(from,to){
+ const key=(window.APP_CONFIG||{}).ODSAY_API_KEY;if(!key)throw new Error('config.js에 ODsay 키가 없어요');
+ const j=await (await fetch(`https://api.odsay.com/v1/api/searchPubTransPathT?SX=${from.lng}&SY=${from.lat}&EX=${to.lng}&EY=${to.lat}&apiKey=${encodeURIComponent(key)}`)).json();
+ if(j.error){const e=[].concat(j.error)[0]||{};throw new Error(String(e.code)==='-98'?'700m 안이라 대중교통 경로가 없어요. 도보 경로를 봐 주세요':(e.message||e.msg||'대중교통 경로를 받지 못했어요'));}
+ const opts=((j.result&&j.result.path)||[]).slice(0,3).map(pa=>{let prev=[from.lat,from.lng];
+  const legs=pa.subPath.map(s=>{if(s.trafficType===3)return {k:'walk',time:s.sectionTime,dist:s.distance};
+   const st=((s.passStopList&&s.passStopList.stations)||[]).map(x=>[+x.y,+x.x]);
+   return {k:s.trafficType===1?'subway':'bus',time:s.sectionTime,dist:s.distance,stops:s.stationCount,from:s.startName,to:s.endName,way:s.way,exit:s.endExitNo&&s.endExitNo!=='null'?s.endExitNo:'',
+    name:s.trafficType===1?(s.lane[0]||{}).name:(s.lane||[]).map(l=>l.busNo).join(', '),pts:st};});
+  legs.forEach((l,i)=>{if(l.k!=='walk')return;const nx=legs.slice(i+1).find(x=>x.k!=='walk');const pv=legs.slice(0,i).reverse().find(x=>x.k!=='walk');
+   const a=pv&&pv.pts.length?pv.pts[pv.pts.length-1]:[from.lat,from.lng],b=nx&&nx.pts.length?nx.pts[0]:[to.lat,to.lng];l.pts=[a,b];});
+  return {time:pa.info.totalTime,pay:pa.info.payment,walk:pa.info.totalWalk,transfer:pa.info.busTransitCount+pa.info.subwayTransitCount-1,mapObj:pa.info.mapObj,legs,lane:false};});
+ if(!opts.length)throw new Error('대중교통 경로가 없어요');
+ return {opts};}
+/* 노선 모양(정류장 사이 실제 선형). 못 받으면 정류장을 잇는 선으로 그린다 */
+async function ensureLane(o){if(o.lane)return;o.lane=true;
+ try{const j=await (await fetch(`https://api.odsay.com/v1/api/loadLane?mapObject=0:0@${o.mapObj}&apiKey=${encodeURIComponent(window.APP_CONFIG.ODSAY_API_KEY)}`)).json();
+  const lanes=(j.result&&j.result.lane)||[];const tr=o.legs.filter(l=>l.k!=='walk');
+  lanes.forEach((ln,i)=>{const pts=[];(ln.section||[]).forEach(s=>(s.graphPos||[]).forEach(g=>pts.push([g.y,g.x])));if(tr[i]&&pts.length>1)tr[i].pts=pts;});}catch(e){}}
+function routeSegs(r){if(!r||r.status!=='ok')return [];
+ if(r.mode==='walk')return [{k:'main',pts:r.data.path}];
+ return r.data.opts[r.opt].legs.map(l=>({k:l.k==='walk'?'walk':'main',pts:l.pts||[]}));}
+function routeMarks(r){if(!r||r.status!=='ok')return [];
+ if(r.mode==='walk')return r.data.steps.map((s,i)=>({lat:s.lat,lng:s.lng,i})).filter((s,i,a)=>i>0&&i<a.length-1).map(s=>({lat:s.lat,lng:s.lng,html:`<div class="mk-step">${s.i}</div>`}));
+ const out=[];r.data.opts[r.opt].legs.forEach(l=>{if(l.k==='walk'||!l.pts.length)return;
+  out.push({lat:l.pts[0][0],lng:l.pts[0][1],html:`<div class="mk mk-stop">${esc(l.from)} 승차</div>`},{lat:l.pts[l.pts.length-1][0],lng:l.pts[l.pts.length-1][1],html:`<div class="mk mk-stop">${esc(l.to)} 하차</div>`});});
+ return out;}
+function routeBody(r,p){
+ const app=`<button class="btn secondary" style="height:42px" data-route="${r.mode}" data-pid="${p.id}">${ic('nav',16)}&nbsp;네이버 지도 앱으로 안내</button>`;
+ if(r.status==='loading')return `<div class="rsum"><span class="t-sm">경로 찾는 중</span></div>`;
+ if(r.status==='err')return `<span class="err">${esc(r.err)}</span>${app}`;
+ const src=`<span class="t-cap">경로: ${r.mode==='walk'?'Tmap 보행자 경로':'ODsay 대중교통 길찾기'}. 공사, 통제 등 실제 길 상황과 다를 수 있어요</span>`;
+ if(r.mode==='walk'){const w=r.data;
+  return `<div class="rsum"><b>${fmtMin(w.time)}</b><span class="t-sm">걸어서 ${fmtDist(w.dist)}</span></div>
+  <ol class="rsteps">${w.steps.map((s,i)=>(r.all||i<5||i===w.steps.length-1)?`<li><button data-rstep="${i}"><span class="rno">${i||''}</span>${ic(s.ic,18)}<span class="grow">${esc(s.text)}</span></button></li>`:'').join('')}</ol>
+  ${!r.all&&w.steps.length>6?`<button class="tag" data-act="rall">단계 모두 보기 (${w.steps.length-6}개 더)</button>`:''}<span class="t-cap">단계를 누르면 지도가 그 위치로 움직여요</span>${app}${src}`;}
+ const o=r.data.opts[r.opt];
+ const legIc={walk:'walk',subway:'train',bus:'bus'};
+ return `${r.data.opts.length>1?`<div class="chips" role="group">${r.data.opts.map((x,i)=>`<button class="chip" data-ropt="${i}" aria-pressed="${r.opt===i}">${[...new Set(x.legs.filter(l=>l.k!=='walk').map(l=>l.k==='subway'?'지하철':'버스'))].join('+')} ${x.time}분${x.transfer>0?`, 환승 ${x.transfer}`:''}</button>`).join('')}</div>`:''}
+  <div class="rsum"><b>${fmtMin(o.time*60)}</b><span class="t-sm">${o.pay?`${o.pay.toLocaleString()}원, `:''}걷기 ${fmtDist(o.walk)}${o.transfer>0?`, 환승 ${o.transfer}회`:', 환승 없음'}</span></div>
+  <ol class="rsteps legs">${o.legs.filter(l=>!(l.k==='walk'&&l.dist<=0)).map(l=>`<li class="leg-${l.k}">${ic(legIc[l.k],18)}<span class="grow">${l.k==='walk'?`걷기 ${l.time}분 <span class="t-cap">${fmtDist(l.dist)}</span>`:`<b>${esc(l.name||'')}</b> ${esc(l.from)} → ${esc(l.to)}<span class="t-cap">${l.stops}정거장, ${l.time}분${l.way?`, ${esc(l.way)} 방면`:''}${l.exit?`, ${esc(l.to)} ${esc(l.exit)}번 출구`:''}</span>`}</span></li>`).join('')}</ol>${app}${src}`;}
+function refreshRoute(){if(ui.mfocus)setFocus(ui.mfocus);MAPH&&MAPH.route&&MAPH.route();}
+function loadRoute(pid,mode){const p=placeById(pid);if(!p||!ui.me)return;
+ const k=`${pid}|${mode}|${ui.me.lat.toFixed(4)},${ui.me.lng.toFixed(4)}`;
+ ui.route={pid,mode,opt:0,status:'loading',key:k};refreshRoute();
+ const fin=d=>{if(!ui.route||ui.route.key!==k)return;ui.route.status='ok';ui.route.data=d;refreshRoute();
+  if(mode==='public')ensureLane(d.opts[0]).then(()=>{if(ui.route&&ui.route.key===k)MAPH&&MAPH.route&&MAPH.route();});};
+ if(ROUTE_CACHE[k]){fin(ROUTE_CACHE[k]);return;}
+ (mode==='walk'?fetchWalk(ui.me,p,shortN(p.name)):fetchTransit(ui.me,p)).then(d=>{ROUTE_CACHE[k]=d;fin(d);})
+  .catch(e=>{if(!ui.route||ui.route.key!==k)return;ui.route.status='err';ui.route.err=e.message||'경로를 받지 못했어요';refreshRoute();});}
 const shortN=n=>n.replace(' (1호선)','');
 const placeById=id=>PLACES.find(p=>p.id===id);
 const naverLink=q=>`https://map.naver.com/p/search/${encodeURIComponent(q)}`;
@@ -526,7 +619,9 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
  let api={dispose(){},focus(){}};
  const box=document.createElement('div');box.className='mapcanvas';el.appendChild(box);
  const drawSketch=(why)=>{const pts=pick();const lat0=37.4985,lng0=126.8695,k=111000,c=Math.cos(lat0*PI/180);
-  const xy=p=>[(p.lng-lng0)*k*c,-(p.lat-lat0)*k];const all=pts.map(xy);const xs=all.map(a=>a[0]),ys=all.map(a=>a[1]);
+  const xy=p=>[(p.lng-lng0)*k*c,-(p.lat-lat0)*k];
+  const rs=ui.route&&ui.route.pid===focus?routeSegs(ui.route):[];
+  const all=pts.map(xy).concat(...rs.map(s=>s.pts.map(a=>xy({lat:a[0],lng:a[1]}))));const xs=all.map(a=>a[0]),ys=all.map(a=>a[1]);
   const cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2,hw=Math.max(650,(Math.max(...xs)-Math.min(...xs))/2+180),hh=Math.max(420,(Math.max(...ys)-Math.min(...ys))/2+180);const x0=cx-hw,x1=cx+hw,y0=cy-hh,y1=cy+hh;
   let s=`<svg viewBox="${x0} ${y0} ${x1-x0} ${y1-y0}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="약도">`;
   const fs=(x1-x0)/30;
@@ -535,7 +630,7 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
   const [ax,ay]=xy(placeById('gaebong')),[bx,by]=xy(placeById('guro'));s+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" class="rail"/>`;
   const [dx,dy]=xy(placeById('dome'));s+=`<ellipse cx="${dx}" cy="${dy}" rx="${fs*2.2}" ry="${fs*1.8}" class="domeshape"/>`;
   const meIn=ui.me&&distM(ui.me,placeById('dome'))<3000;const fp=focus&&placeById(focus);
-  if(meIn&&fp&&fp.lat!=null){const [mx,my]=xy(ui.me),[px,py]=xy(fp);s+=`<line x1="${mx}" y1="${my}" x2="${px}" y2="${py}" class="routeline"/>`;}
+  rs.forEach(sg=>{if(sg.pts.length<2)return;const d=sg.pts.map(a=>xy({lat:a[0],lng:a[1]}).join(',')).join(' ');s+=`<polyline points="${d}" class="rcase"/><polyline points="${d}" class="${sg.k==='walk'?'rwalk':'rmain'}"/>`;});
   const groups=placeGroups(pts,focus,p=>{const [x,y]=xy(p);return [x,y-fs*0.95];},p=>[shortN(p.name).length*fs*0.9+fs,fs*1.3]);
   groups.slice().reverse().forEach(g=>g.items.slice(1).forEach(p=>{const [x,y]=xy(p);s+=`<g class="pt dot ${p.kind}" data-mfocus="${p.id}"><circle cx="${x}" cy="${y}" r="${fs*0.3}"/></g>`;}));
   groups.slice().reverse().forEach(g=>{const p=g.items[0];const [x,y]=xy(p);const on=focus===p.id;const n=g.items.length-1;s+=`<g class="pt ${p.kind} ${on?'on':''}" data-mfocus="${p.id}"><circle cx="${x}" cy="${y}" r="${fs*0.55}"/><text x="${x}" y="${y-fs*0.95}" text-anchor="middle" font-size="${fs*0.9}">${esc(shortN(p.name))}${n?` +${n}`:''}</text></g>`;});
@@ -566,18 +661,27 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
    pick().forEach(p=>{const m=new naver.maps.Marker({position:new naver.maps.LatLng(p.lat,p.lng),map,icon:{content:`<div class="mk mk-${p.kind}">${esc(shortN(p.name))}</div>`,anchor:new naver.maps.Point(0,0)}});
     naver.maps.Event.addListener(m,'click',()=>{if(pickAt(p.id))return;api.focus(p.id);onFocus&&onFocus(p.id);});marks[p.id]=m;});
    naver.maps.Event.addListener(map,'idle',layout);naver.maps.Event.addListener(map,'click',()=>iw.close());
-   let meMk=null,line=null;
+   let meMk=null,rOv=[];
    if(ui.me){meMk=new naver.maps.Marker({position:new naver.maps.LatLng(ui.me.lat,ui.me.lng),map,zIndex:200,icon:{content:'<div class="mk mk-me">내 위치</div>',anchor:new naver.maps.Point(0,0)}});}
+   /* 경로: 흰 테두리 + 검은 선. 대중교통의 걷는 구간은 회색 점선 */
+   const drawRoute=()=>{rOv.forEach(o=>o.setMap(null));rOv=[];const r=ui.route;
+    if(!r||r.status!=='ok'||r.pid!==focus)return false;
+    const LL=a=>new naver.maps.LatLng(a[0],a[1]),b=new naver.maps.LatLngBounds();
+    routeSegs(r).forEach(s=>{if(s.pts.length<2)return;const path=s.pts.map(LL);path.forEach(x=>b.extend(x));const w=s.k==='walk';
+     rOv.push(new naver.maps.Polyline({map,path,strokeColor:'#fafafa',strokeWeight:w?7:10,strokeOpacity:1,strokeLineCap:'round',strokeLineJoin:'round'}));
+     rOv.push(new naver.maps.Polyline({map,path,strokeColor:w?'#525252':'#0a0a0a',strokeWeight:w?4:6,strokeOpacity:1,strokeStyle:w?'shortdot':'solid',strokeLineCap:'round',strokeLineJoin:'round'}));});
+    routeMarks(r).forEach(m=>rOv.push(new naver.maps.Marker({position:LL([m.lat,m.lng]),map,zIndex:120,icon:{content:m.html,anchor:new naver.maps.Point(0,0)}})));
+    if(meMk)b.extend(meMk.getPosition());map.fitBounds(b,{top:40,right:30,bottom:40,left:30});return true;};
+   api.pan=(lat,lng)=>{map.panTo(new naver.maps.LatLng(lat,lng));if(map.getZoom()<17)map.setZoom(17,true);};
    api.focus=id=>{const p=placeById(id);focus=id;iw.close();layout();
-    if(line){line.setMap(null);line=null;}
+    if(drawRoute())return;
     if(!p||p.lat==null){if(meMk)map.panTo(meMk.getPosition());return;}
     const to=new naver.maps.LatLng(p.lat,p.lng);
-    if(meMk){line=new naver.maps.Polyline({map,path:[meMk.getPosition(),to],strokeColor:'#0a0a0a',strokeWeight:3,strokeOpacity:.8,strokeStyle:'shortdash'});
-     const a=ui.me;map.fitBounds(new naver.maps.LatLngBounds(new naver.maps.LatLng(Math.min(a.lat,p.lat),Math.min(a.lng,p.lng)),new naver.maps.LatLng(Math.max(a.lat,p.lat),Math.max(a.lng,p.lng))),{top:50,right:40,bottom:50,left:40});return;}
+    if(meMk){const a=ui.me;map.fitBounds(new naver.maps.LatLngBounds(new naver.maps.LatLng(Math.min(a.lat,p.lat),Math.min(a.lng,p.lng)),new naver.maps.LatLng(Math.max(a.lat,p.lat),Math.max(a.lng,p.lng))),{top:50,right:40,bottom:50,left:40});return;}
     map.panTo(to);if(map.getZoom()<16)map.setZoom(16,true);};
    if(focus)api.focus(focus);
    api.dispose=()=>{try{map.destroy();}catch(e){}};});});
- return {dispose(){api.dispose();},focus(id){focus=id;api.focus(id);}};}
+ return {dispose(){api.dispose();},focus(id){focus=id;api.focus(id);},route(){api.focus(focus);},pan(lat,lng){api.pan&&api.pan(lat,lng);}};}
 
 /* ---------- state ---------- */
 const KEY='gocheok-app-v1';
@@ -912,6 +1016,11 @@ app.addEventListener('click',e=>{
  const d=b.dataset;
  if(d.f3n!==undefined)return;
  if(d.route){startRoute(placeById(d.pid),d.route);return;}
+ if(d.iroute){loadRoute(d.pid,d.iroute);return;}
+ if(d.ropt!==undefined&&ui.route&&ui.route.data){ui.route.opt=+d.ropt;refreshRoute();const k=ui.route.key;ensureLane(ui.route.data.opts[ui.route.opt]).then(()=>{if(ui.route&&ui.route.key===k)MAPH&&MAPH.route();});return;}
+ if(d.rstep!==undefined&&ui.route&&ui.route.data){const s=ui.route.data.steps[+d.rstep];if(s){MAPH&&MAPH.pan(s.lat,s.lng);const mb=document.getElementById('mbox');mb&&mb.scrollIntoView({behavior:'smooth',block:'nearest'});}return;}
+ if(d.act==='rclose'){ui.route=null;refreshRoute();return;}
+ if(d.act==='rall'&&ui.route){ui.route.all=true;setFocus(ui.mfocus);return;}
  if(d.act==='shops'){ui.mset='주변 상권';ui.scat=d.scat||'전체';ui.slim=20;ui.mfocus=null;tabTo('move');return;}
  if(d.act==='more'){ui.slim+=20;render();return;}
  if(d.scat){ui.scat=d.scat;ui.slim=20;ui.mfocus=null;render();return;}
@@ -949,7 +1058,7 @@ app.addEventListener('click',e=>{
   case 'view':ui.sec=d.s;ui.vmode='3d';go('view');break;
   case 'reset3d':R3&&R3.reset();break;
   case 'locate':locate();break;
-  case 'locoff':ui.me=null;ui.locErr='';render();toast('내 위치를 지웠어요. 브라우저 권한은 사이트 설정에서 끌 수 있어요');break;
+  case 'locoff':ui.me=null;ui.route=null;ui.locErr='';render();toast('내 위치를 지웠어요. 브라우저 권한은 사이트 설정에서 끌 수 있어요');break;
   case 'reset':if(!confirm('가입 정보, 티켓, 올린 시야를 이 브라우저에서 모두 지울까요?'))return;try{localStorage.removeItem(KEY);}catch(e){}location.reload();break;
   case 'consent':ui.draft=(document.getElementById('rtext')||{}).value||'';ui.consent=!ui.consent;render();break;
   case 'post':{const txt=document.getElementById('rtext').value.trim()||'한 줄 후기 없음';
