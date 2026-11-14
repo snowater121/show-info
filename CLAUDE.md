@@ -17,6 +17,7 @@
 | `index.html` | 앱 전체 (HTML, CSS, JS 한 파일. 빌드 없음) |
 | `config.js` | 네이버 지도 Client ID, 인증 파라미터 이름, Tmap, ODsay 키(공개 키). **Client Secret 금지** |
 | `README.md` | 실행, 배포, 네이버 지도 설정, 데이터 출처 |
+| `sw.js` | 오프라인 저장용 서비스 워커. 앱 파일(index.html, config.js, data/shops.json)은 네트워크 먼저(3초 넘으면 저장본), three.js와 글꼴은 저장본 먼저. 외부 API와 지도 타일은 건드리지 않음. **앱 파일 구성을 바꾸면 `VERSION`을 올릴 것** |
 | `.nojekyll` | GitHub Pages가 Jekyll 처리를 하지 않게 함 |
 
 외부 라이브러리: three.js r128 (cdnjs), NAVER Maps JS v3 (`oapi.map.naver.com`, `submodules=geocoder`), Noto Sans KR (Google Fonts).
@@ -48,10 +49,11 @@
    - `mountMap()`, `focusHTML()`, `setFocus()`
    - 내 위치와 길 안내: `locate()`가 브라우저 위치 권한으로 `ui.me`를 채움(**저장하지 않음**, 이번 접속에서만). 목록은 가까운 순 정렬
    - 앱 안 경로(2026-11-14): `loadRoute(pid,'walk'|'public')` → `fetchWalk()`(Tmap 보행자 경로, 경로선과 회전 단계) / `fetchTransit()`(ODsay 대중교통, 최대 3개 경로, `ensureLane()`으로 노선 모양). 상태는 `ui.route`, 결과는 `ROUTE_CACHE`(이번 접속만). 지도는 `routeSegs()`, `routeMarks()`로 그리고, 카드는 `routeBody()`. 700m 안은 ODsay가 경로를 주지 않음(도보 안내). 자동차는 앱으로 넘김
+   - 오프라인 저장(2026-11-15): 공연장 안은 인파로 데이터가 잘 안 터져서 만듦. `saveOffline()`이 서비스 워커 저장본을 새로 받고, 돔→구일, 개봉, 구로역 도보 경로(Tmap, `fromName` '고척스카이돔')를 `OFF`(localStorage `gocheok-offline-v1`)에 저장. 돔 출발이라 개인 위치는 들어가지 않음. 저장 경로는 `ui.route.from==='dome'`, `data-act="droute"`로 보여 줌. `NET.on`이 false면 화면 맨 위 `netbar()`, 지도는 약도로 대체. 저장 버튼은 이동 탭 `offCard()`와 마이페이지
    - `placeGroups()`: 지도 이름표가 겹치면 대표 하나 + "+n", 나머지는 점. 최대 확대에서도 겹치면 목록 창
    - `startRoute()`는 네이버 지도 앱 URL Scheme(`nmap://route/walk|public|car`, Android는 `intent://`)으로 내 위치 출발 길 안내를 넘김. 컴퓨터에서는 네이버 지도 장소 검색을 엶
    - `kind:'near'`(편의점, 식당, 카페, 약국 검색 링크): `data/shops.json`을 못 불러왔을 때만 쓰는 대체 항목
-6. **상태**: `S`(localStorage 키 `gocheok-app-v1`에 저장: 닉네임, 티켓, 공연장, 내가 올린 시야, 알림), `ui`(화면 상태, 저장 안 함), `stack`(화면 이동 기록)
+6. **상태**: `S`(localStorage 키 `gocheok-app-v1`에 저장: 닉네임, 티켓, 공연장, 내가 올린 시야, 알림), `OFF`(`gocheok-offline-v1`: 오프라인 저장 시각, 돔 출발 경로), `ui`(화면 상태, 저장 안 함), `stack`(화면 이동 기록)
 7. **SCREENS**: `start, signup, home, ticket, sight, view, upload, place, move, mapview, comm, venue, my`. `my`는 마이페이지(탭 화면 헤더 오른쪽 사람 아이콘, `data-go="my"`). 각 함수는 HTML 문자열을 반환하고, 3D나 지도가 필요하면 `ui._mount`에 마운트 함수를 넣는다
 8. **render()**: 이전 3D/지도 정리(`disposeR3` → `disposeMap`) → innerHTML 교체 → `ui._mount` 실행
 9. **클릭 처리**: `#app` 하나에 이벤트 위임. `data-go`, `data-tab`, `data-act`, `data-sec`, `data-floor`, `data-vmode`, `data-mset`, `data-mapgo`, `data-mfocus` 등 data 속성으로 분기
@@ -127,6 +129,7 @@ python3 -m http.server 8000   # http://localhost:8000
 5. 코레일 시간표로 구일역 막차 표시 (구일역 포함 여부 확인 필요)
 6. ~~상가정보로 상권 목록 교체~~ 완료(2026-11-14, `data/shops.json`). 남은 것: 영업시간(운영자 입력이나 다른 출처), 다른 공연장 좌표 확인 후 `tools/build_shops.py` `VENUES` 추가, 분기마다 갱신
    - ~~앱 안 경로선과 소요 시간~~ 완료(2026-11-14, Tmap 도보 + ODsay 대중교통). 남은 것: 실시간 위치 따라가기, 자동차 경로
+   - ~~오프라인 저장~~ 완료(2026-11-15). 남은 것: 지도 타일 오프라인(저장 가능 여부는 네이버 약관 원문 확인 필요, 지금은 약도로 대체), 경로 결과 저장 가능 범위는 Tmap 이용약관 원문 확인 필요
 7. 회원, 티켓, 시야 후기를 브라우저 저장소에서 실제 DB로 옮기기 (여러 사람이 공유하려면 필요)
 8. 운영자 화면 (검수, 신고 처리, 정보 갱신, 통계)
 9. 다른 공연장 데이터 추가 (공연장 모형 데이터만 추가하면 같은 화면이 동작하도록 유지)

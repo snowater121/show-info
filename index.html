@@ -140,6 +140,7 @@ textarea.input{min-height:110px;resize:vertical}
 .mk-step{transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#fafafa;border:2px solid #0a0a0a}
 .mk-step.on{width:22px;height:22px;background:#0a0a0a;color:#fafafa;border-color:#fafafa;box-shadow:0 0 0 2px #0a0a0a;font:700 11px/18px "Noto Sans KR",sans-serif;text-align:center}
 .mk.mk-stop{font-size:11px;padding:2px 7px;background:#fafafa}
+.netbar{flex:none;display:flex;align-items:center;gap:6px;padding:8px max(20px,env(safe-area-inset-left,0px));background:var(--inv);color:var(--on-inv);font-size:12px;font-weight:500}
 .rsum{display:flex;align-items:baseline;gap:8px}
 .rsum b{font-size:22px;font-variant-numeric:tabular-nums}
 .rsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--border)}
@@ -225,6 +226,8 @@ textarea.input{min-height:110px;resize:vertical}
 (()=>{
 const ICONS={
  'chevron-left':'<path d="m15 18-6-6 6-6"/>','chevron-right':'<path d="m9 18 6-6-6-6"/>','chevron-down':'<path d="m6 9 6 6 6-6"/>',
+ download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+ 'wifi-off':'<path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2.01-1.52"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/>',
  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
  ticket:'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
@@ -540,13 +543,16 @@ const ROUTE_MODES=[['walk','도보'],['public','대중교통'],['car','자동차
 function routeHTML(p){
  if(p.kind==='near')return `<a class="btn secondary" style="text-decoration:none" href="${naverLink(p.search)}" target="_blank" rel="noopener">${ic('search',18)}&nbsp;네이버 지도에서 ${esc(p.name)} 고르기</a><span class="t-cap">상가 위치 데이터 연동 전이에요. 네이버 지도에서 가게를 고른 뒤 길찾기를 눌러 주세요</span>`;
  if(p.lat==null)return '';
- if(!ui.me)return `<button class="btn primary" data-act="locate" ${ui.locBusy?'disabled':''}>${ic('locate',18)}&nbsp;${ui.locBusy?'내 위치 찾는 중':'내 위치 허용하고 길 안내 받기'}</button>${ui.locErr?`<span class="err">${esc(ui.locErr)}</span>`:''}`;
+ const r0=ui.route&&ui.route.pid===p.id?ui.route:null;
+ if(r0&&r0.from==='dome')return `<span class="t-sm" style="color:var(--tp);font-weight:500">고척스카이돔에서 출발, ${esc(fmtSaved(OFF.at))} 저장한 경로</span><div class="chips" role="group"><button class="chip" data-act="rclose">경로 닫기</button></div>${routeBody(r0,p)}`;
+ const sv=OFF.routes[p.id],domeBtn=sv?`<button class="btn secondary" style="height:42px" data-act="droute" data-pid="${p.id}">${ic('walk',16)}&nbsp;돔에서 가는 길 (저장됨, ${fmtMin(sv.time)})</button>`:'';
+ if(!ui.me)return domeBtn+`<button class="btn primary" data-act="locate" ${ui.locBusy?'disabled':''}>${ic('locate',18)}&nbsp;${ui.locBusy?'내 위치 찾는 중':'내 위치 허용하고 길 안내 받기'}</button>${ui.locErr?`<span class="err">${esc(ui.locErr)}</span>`:''}${sv&&!NET.on?'<span class="t-cap">오프라인이에요. 저장된 돔 출발 경로는 인터넷 없이 볼 수 있어요</span>':''}`;
  const d=myDist(p),r=ui.route&&ui.route.pid===p.id?ui.route:null;
  const head=`<span class="t-sm" style="color:var(--tp);font-weight:500">내 위치에서 직선 약 ${fmtDist(d)}</span>`;
  const modes=p.kind==='parking'?[['walk','도보']]:[['walk','도보'],['public','대중교통']];
  if(!r){const first=p.kind!=='parking'&&d>1500?'public':'walk';
-  return head+`<div style="display:grid;grid-template-columns:repeat(${modes.length+(p.kind==='parking'?1:0)},1fr);gap:6px">${p.kind==='parking'?`<button class="btn primary" style="height:42px" data-route="car" data-pid="${p.id}">${ic('car',16)}&nbsp;자동차</button>`:''}${modes.map(([m,l])=>`<button class="btn ${m===first&&p.kind!=='parking'?'primary':'secondary'}" style="height:42px" data-iroute="${m}" data-pid="${p.id}">${ic(m==='walk'?'walk':'train',16)}&nbsp;${l} 경로</button>`).join('')}</div><span class="t-cap">${p.kind==='parking'?'자동차는 네이버 지도 앱으로 안내해요. ':''}경로를 누르면 지도에 길과 단계별 안내를 보여 줘요</span>`;}
- return head+`<div class="chips" role="group">${modes.map(([m,l])=>`<button class="chip" data-iroute="${m}" data-pid="${p.id}" aria-pressed="${r.mode===m}">${l}</button>`).join('')}<button class="chip" data-act="rclose">경로 닫기</button></div>${routeBody(r,p)}`;}
+  return head+`<div style="display:grid;grid-template-columns:repeat(${modes.length+(p.kind==='parking'?1:0)},1fr);gap:6px">${p.kind==='parking'?`<button class="btn primary" style="height:42px" data-route="car" data-pid="${p.id}">${ic('car',16)}&nbsp;자동차</button>`:''}${modes.map(([m,l])=>`<button class="btn ${m===first&&p.kind!=='parking'?'primary':'secondary'}" style="height:42px" data-iroute="${m}" data-pid="${p.id}">${ic(m==='walk'?'walk':'train',16)}&nbsp;${l} 경로</button>`).join('')}</div>${domeBtn}<span class="t-cap">${p.kind==='parking'?'자동차는 네이버 지도 앱으로 안내해요. ':''}경로를 누르면 지도에 길과 단계별 안내를 보여 줘요</span>`;}
+ return head+`<div class="chips" role="group">${modes.map(([m,l])=>`<button class="chip" data-iroute="${m}" data-pid="${p.id}" aria-pressed="${r.mode===m}">${l}</button>`).join('')}<button class="chip" data-act="rclose">경로 닫기</button></div>${routeBody(r,p)}${r.status==='err'?domeBtn:''}`;}
 
 /* ---------- 앱 안 경로 안내 ----------
  * 도보: Tmap 보행자 경로 API, 대중교통: ODsay 대중교통 길찾기 API (+ loadLane으로 노선 모양).
@@ -555,10 +561,10 @@ function routeHTML(p){
 const ROUTE_CACHE={};
 const TURN={11:'arrow-up',12:'turn-left',13:'turn-right',14:'uturn',16:'turn-left',17:'turn-left',18:'turn-right',19:'turn-right',125:'stairs',126:'stairs',127:'stairs',128:'arrow-up',129:'stairs',200:'nav',201:'flag',211:'cross',212:'cross',213:'cross',214:'cross',215:'cross',216:'cross',217:'cross',218:'stairs'};
 const fmtMin=s=>{const m=Math.max(1,Math.round(s/60));return m<60?`${m}분`:`${Math.floor(m/60)}시간 ${m%60?m%60+'분':''}`;};
-async function fetchWalk(from,to,toName){
+async function fetchWalk(from,to,toName,fromName='내 위치'){
  const key=(window.APP_CONFIG||{}).TMAP_APP_KEY;if(!key)throw new Error('config.js에 Tmap 키가 없어요');
  const r=await fetch('https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&format=json',{method:'POST',headers:{appKey:key,'Content-Type':'application/json',Accept:'application/json'},
-  body:JSON.stringify({startX:from.lng,startY:from.lat,endX:to.lng,endY:to.lat,startName:'내 위치',endName:toName,reqCoordType:'WGS84GEO',resCoordType:'WGS84GEO',searchOption:'0'})});
+  body:JSON.stringify({startX:from.lng,startY:from.lat,endX:to.lng,endY:to.lat,startName:fromName,endName:toName,reqCoordType:'WGS84GEO',resCoordType:'WGS84GEO',searchOption:'0'})});
  const j=await r.json().catch(()=>({}));
  if(!r.ok||!j.features||!j.features.length)throw new Error((j.error&&j.error.message)||`도보 경로를 받지 못했어요 (${r.status})`);
  const head=j.features[0].properties,path=[],steps=[];
@@ -598,7 +604,7 @@ function routeBody(r,p){
  const app=`<button class="btn secondary" style="height:42px" data-route="${r.mode}" data-pid="${p.id}">${ic('nav',16)}&nbsp;네이버 지도 앱으로 안내</button>`;
  if(r.status==='loading')return `<div class="rsum"><span class="t-sm">경로 찾는 중</span></div>`;
  if(r.status==='err')return `<span class="err">${esc(r.err)}</span>${app}`;
- const src=`<span class="t-cap">경로: ${r.mode==='walk'?'Tmap 보행자 경로':'ODsay 대중교통 길찾기'}. 공사, 통제 등 실제 길 상황과 다를 수 있어요</span>`;
+ const src=`<span class="t-cap">경로: ${r.mode==='walk'?'Tmap 보행자 경로':'ODsay 대중교통 길찾기'}${r.saved?', 이 기기에 저장한 경로라 인터넷 없이 보여요. 돔 중심에서 역 중심까지라 출입문, 출구 위치에 따라 더 짧을 수 있어요':''}. 공사, 통제 등 실제 길 상황과 다를 수 있어요</span>`;
  if(r.mode==='walk'){const w=r.data;
   return `<div class="rsum"><b>${fmtMin(w.time)}</b><span class="t-sm">걸어서 ${fmtDist(w.dist)}</span></div>
   <ol class="rsteps">${w.steps.map((s,i)=>(r.all||i<5||i===w.steps.length-1)?`<li><button data-rstep="${i}"><span class="rno">${i||''}</span>${ic(s.ic,18)}<span class="grow">${esc(s.text)}</span></button></li>`:'').join('')}</ol>
@@ -616,7 +622,41 @@ function loadRoute(pid,mode){const p=placeById(pid);if(!p||!ui.me)return;
   if(mode==='public')ensureLane(d.opts[0]).then(()=>{if(ui.route&&ui.route.key===k)MAPH&&MAPH.route&&MAPH.route();});};
  if(ROUTE_CACHE[k]){fin(ROUTE_CACHE[k]);return;}
  (mode==='walk'?fetchWalk(ui.me,p,shortN(p.name)):fetchTransit(ui.me,p)).then(d=>{ROUTE_CACHE[k]=d;fin(d);})
-  .catch(e=>{if(!ui.route||ui.route.key!==k)return;ui.route.status='err';ui.route.err=e.message||'경로를 받지 못했어요';refreshRoute();});}
+  .catch(e=>{if(!ui.route||ui.route.key!==k)return;ui.route.status='err';ui.route.err=navigator.onLine?(e.message||'경로를 받지 못했어요'):'오프라인이라 새 경로를 받을 수 없어요'+(OFF.routes[pid]?'. 아래 저장된 돔 출발 경로를 봐 주세요':'');refreshRoute();});}
+/* ---------- 오프라인 저장 ----------
+ * 공연장 안은 인파가 몰리면 데이터가 잘 안 터진다. sw.js(서비스 워커)가 앱 화면, 공연장 정보, 상가 목록, 3D 라이브러리를
+ * 처음 열 때 저장하고, '오프라인 저장'을 누르면 최신으로 다시 받으면서 돔에서 지하철역까지 도보 경로(Tmap)를 미리 받아 둔다.
+ * 돔 출발 경로라 개인 위치는 들어가지 않는다. 네이버 지도 타일은 저장하지 않고, 오프라인이면 실제 좌표 약도로 그린다 */
+const OFF_KEY='gocheok-offline-v1',HOME_STOPS=['guil','gaebong','guro'];
+let OFF={at:null,routes:{}};
+try{const raw=localStorage.getItem(OFF_KEY);if(raw)OFF=Object.assign(OFF,JSON.parse(raw));}catch(e){}
+const NET={on:navigator.onLine,busy:false,sw:false};
+const fmtSaved=iso=>{if(!iso)return '';const d=new Date(iso);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+async function saveOffline(){
+ if(NET.busy)return;
+ if(!navigator.onLine){toast('인터넷이 연결됐을 때 저장할 수 있어요');return;}
+ NET.busy=true;render();
+ let shell=false;
+ try{if('caches' in window){if(navigator.serviceWorker&&navigator.serviceWorker.controller==null&&NET.sw)await Promise.race([navigator.serviceWorker.ready,new Promise(r=>setTimeout(r,4000))]);const k=(await caches.keys()).find(x=>x.startsWith('show-info-'));
+  if(k){const c=await caches.open(k);await c.addAll(['./','index.html','config.js','data/shops.json']);shell=true;}}}catch(e){}
+ const dome=placeById('dome'),routes={};
+ for(const id of HOME_STOPS){const p=placeById(id);try{routes[id]=await fetchWalk(dome,p,shortN(p.name),'고척스카이돔');}catch(e){}}
+ NET.busy=false;
+ const n=Object.keys(routes).length;
+ if(!shell&&!n){render();toast('저장하지 못했어요. 잠시 뒤 다시 눌러 주세요');return;}
+ OFF={at:new Date().toISOString(),shell:shell||NET.sw,routes:n?routes:OFF.routes};
+ try{localStorage.setItem(OFF_KEY,JSON.stringify(OFF));}catch(e){}
+ render();toast(n===HOME_STOPS.length?'오프라인 저장을 마쳤어요':`저장했어요. 경로는 ${n}개만 받았어요`);}
+function offCard(){const n=Object.keys(OFF.routes||{}).length;
+ if(NET.busy)return `<div class="row" style="padding:12px 14px;gap:10px">${ic('download',20)}<span class="grow"><b style="font-size:14px">오프라인 저장 중</b><span class="t-cap">앱 화면과 돔 출발 경로를 받고 있어요</span></span></div>`;
+ if(OFF.at)return `<div class="row" style="padding:12px 14px;gap:10px">${ic('download',20)}<span class="grow"><b style="font-size:14px">오프라인 저장됨, ${esc(fmtSaved(OFF.at))}</b><span class="t-cap">앱 화면, 공연장 정보, 상가 ${shopsOf('gocheok').length}곳, 돔에서 역까지 도보 경로 ${n}개. 데이터가 안 터져도 볼 수 있어요</span></span><button class="tag" data-act="offsave">다시 저장</button></div>`;
+ return `<div class="card line" style="gap:8px"><b style="font-size:14px">공연장 가기 전에 오프라인 저장</b><span class="t-sm">공연장 안은 인파가 몰리면 데이터가 잘 안 터져요. 미리 저장하면 이동, 공연장 정보와 돔에서 역까지 가는 길을 인터넷 없이 볼 수 있어요</span><button class="btn primary" data-act="offsave">${ic('download',18)}&nbsp;오프라인 저장하기</button><span class="t-cap">지도는 오프라인이면 약도로 보여요. 내 위치에서 출발하는 새 경로는 인터넷이 있어야 받아요</span></div>`;}
+const netbar=()=>`<div class="netbar" id="netbar" role="status" ${NET.on?'hidden':''}>${ic('wifi-off',16)}<span>오프라인이에요. ${OFF.at?`${esc(fmtSaved(OFF.at))}에 저장한 정보로 보여요`:'처음 열 때 저장된 정보로 보여요'}</span></div>`;
+function setNet(on){NET.on=on;const b=document.getElementById('netbar');if(b)b.outerHTML=netbar();
+ if(on&&NAV.state==='fail'&&NAV.off){NAV.state='idle';NAV.off=false;}
+ if(['move','mapview','place'].includes(cur()))render();
+ toast(on?'인터넷에 다시 연결됐어요':'오프라인이에요. 저장된 정보로 보여요');}
+addEventListener('online',()=>setNet(true));addEventListener('offline',()=>setNet(false));
 const shortN=n=>n.replace(' (1호선)','');
 const placeById=id=>PLACES.find(p=>p.id===id);
 const naverLink=q=>`https://map.naver.com/p/search/${encodeURIComponent(q)}`;
@@ -625,6 +665,7 @@ function loadNaver(){
  const cfg=window.APP_CONFIG||{};
  if(NAV.state==='ready')return Promise.resolve(true);
  if(NAV.state==='fail')return Promise.resolve(false);
+ if(!navigator.onLine){NAV.state='fail';NAV.off=true;NAV.why='오프라인이라 실제 좌표로 그린 약도로 보여 줘요';return Promise.resolve(false);}
  if(!cfg.NAVER_CLIENT_ID){NAV.state='fail';NAV.why='이 미리보기 화면에서는 네이버 지도를 쓸 수 없어 실제 좌표로 그렸어요. GitHub Pages 주소에서는 네이버 지도로 보여요';return Promise.resolve(false);}
  return new Promise(res=>{NAV.waiters.push(res);if(NAV.state==='loading')return;NAV.state='loading';
   const done=(ok,why='')=>{NAV.state=ok?'ready':'fail';NAV.why=why;NAV.waiters.splice(0).forEach(f=>f(ok));};
@@ -679,7 +720,7 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
   box.innerHTML=s+`<div class="mapnote">약도: ${esc(why||'')}${ui.me&&!meIn?' 내 위치는 약도 범위 밖이에요':''}</div>`;
   api.focus=id=>{focus=id;drawSketch(why);};};
  loadNaver().then(ok=>{if(!box.isConnected)return;
-  if(!ok){drawSketch(NAV.why);return;}
+  if(!ok||!navigator.onLine){drawSketch(ok?'오프라인이라 실제 좌표로 그린 약도로 보여 줘요':NAV.why);return;}
   geocodeAll().then(()=>{if(!box.isConnected)return;
    const map=new naver.maps.Map(box,{center:new naver.maps.LatLng(37.4982,126.8672),zoom:15,scaleControl:false,mapDataControl:false,logoControlOptions:{position:naver.maps.Position.BOTTOM_LEFT}});
    const iw=new naver.maps.InfoWindow({content:'',borderWidth:0,backgroundColor:'transparent',disableAnchor:true,pixelOffset:new naver.maps.Point(0,-14)});
@@ -711,7 +752,7 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
      rOv.push(new naver.maps.Polyline({map,path,strokeColor:'#fafafa',strokeWeight:w?7:10,strokeOpacity:1,strokeLineCap:'round',strokeLineJoin:'round'}));
      rOv.push(new naver.maps.Polyline({map,path,strokeColor:w?'#525252':'#0a0a0a',strokeWeight:w?4:6,strokeOpacity:1,strokeStyle:w?'shortdot':'solid',strokeLineCap:'round',strokeLineJoin:'round'}));});
     routeMarks(r).forEach(m=>rOv.push(new naver.maps.Marker({position:LL([m.lat,m.lng]),map,zIndex:120,icon:{content:m.html,anchor:new naver.maps.Point(0,0)}})));
-    if(fit){if(meMk)b.extend(meMk.getPosition());map.fitBounds(b,{top:40,right:30,bottom:40,left:30});}return true;};
+    if(fit){if(meMk&&r.from!=='dome')b.extend(meMk.getPosition());map.fitBounds(b,{top:40,right:30,bottom:40,left:30});}return true;};
    api.pan=(lat,lng)=>{drawRoute(false);map.panTo(new naver.maps.LatLng(lat,lng));if(map.getZoom()<17)map.setZoom(17,true);};
    api.focus=id=>{const p=placeById(id);focus=id;iw.close();layout();
     if(drawRoute())return;
@@ -984,6 +1025,7 @@ move:()=>{const sh=show();const arr=sh.end?addMin(sh.end,23):null;
  ui._mount=()=>{const el=document.getElementById('mbox');MAPH=mountMap(el,{kinds,focus:ui.mfocus,onFocus:setFocus,filter:isShop?p=>shown.has(p.id):null});};
  return hdr('이동')+`<div class="body" style="gap:12px">
   ${locCard}
+  ${offCard()}
   <div class="chips" role="group">${Object.keys(sets).map(k=>`<button class="chip" data-mset="${k}" aria-pressed="${ui.mset===k}">${k}</button>`).join('')}</div>
   <div class="mapbox" id="mbox"></div>
   <div class="card line focus" id="mfocus">${focusHTML(placeById(ui.mfocus))}</div>
@@ -1030,6 +1072,7 @@ my:()=>{const t=S.ticket;const mine=S.posts;
   <h2>설정</h2>
   <button class="row" data-act="${ui.me?'locoff':'locate'}">${ic('locate',22)}<span class="grow"><b>내 위치 사용</b><span class="t-sm">${ui.me?'켜짐, 이번 접속에서만 쓰고 저장하지 않아요':'꺼짐, 길 안내를 쓸 때 켜요'}</span></span><span class="tag">${ui.me?'끄기':'켜기'}</span></button>
   <button class="row" data-act="alarm">${ic('bell',22)}<span class="grow"><b>귀가 알림</b><span class="t-sm">공연 종료 10분 전에 귀가 방법 안내</span></span><span class="tag">${S.alarm?'켜짐':'꺼짐'}</span></button>
+  <button class="row" data-act="offsave" ${NET.busy?'disabled':''}>${ic('download',22)}<span class="grow"><b>오프라인 저장</b><span class="t-sm">${NET.busy?'저장 중':OFF.at?`${esc(fmtSaved(OFF.at))} 저장, 이동과 공연장 정보를 인터넷 없이 봐요`:'공연장 가기 전에 저장해 두면 데이터가 안 터져도 봐요'}</span></span><span class="tag">${OFF.at?'다시 저장':'저장'}</span></button>
   ${row('공연장 바꾸기',V().name,'pin','venue')}
   <div class="spacer"></div>
   <span class="t-cap">가입, 티켓, 시야는 이 브라우저에만 저장돼요 (데모)</span>
@@ -1051,7 +1094,7 @@ function render(){
  const sameView=app.dataset.view===v;
  app.dataset.view=v;
  disposeR3();ui._mount=null;
- app.innerHTML=SCREENS[v]()+'<div class="toast" id="toast" hidden></div>';
+ app.innerHTML=netbar()+SCREENS[v]()+'<div class="toast" id="toast" hidden></div>';
  if(ui._mount){try{ui._mount();}catch(err){console.error(err);const el=app.querySelector('.stage3d');if(el)el.innerHTML='<div class="msg">3D 화면을 그리지 못했어요</div>';}}
  if(sameView){const b=app.querySelector('.body');if(b)b.scrollTop=keepScroll;}
  bindInputs();
@@ -1086,6 +1129,8 @@ app.addEventListener('click',e=>{
  if(d.iroute){loadRoute(d.pid,d.iroute);return;}
  if(d.ropt!==undefined&&ui.route&&ui.route.data){ui.route.opt=+d.ropt;refreshRoute();const k=ui.route.key;ensureLane(ui.route.data.opts[ui.route.opt]).then(()=>{if(ui.route&&ui.route.key===k)MAPH&&MAPH.route();});return;}
  if(d.rstep!==undefined&&ui.route&&ui.route.data){const s=ui.route.data.steps[+d.rstep];if(s){ui.route.step=+d.rstep;MAPH&&MAPH.pan(s.lat,s.lng);const mb=document.getElementById('mbox');mb&&mb.scrollIntoView({behavior:'smooth',block:'nearest'});}return;}
+ if(d.act==='droute'){const sv=OFF.routes[d.pid];if(sv){ui.route={pid:d.pid,mode:'walk',opt:0,status:'ok',key:'dome|'+d.pid,data:sv,from:'dome',saved:true};refreshRoute();}return;}
+ if(d.act==='offsave'){saveOffline();return;}
  if(d.act==='rclose'){ui.route=null;refreshRoute();return;}
  if(d.act==='rall'&&ui.route){ui.route.all=true;setFocus(ui.mfocus);return;}
  if(d.act==='shops'){ui.mset='주변 상권';ui.scat=d.scat||'전체';ui.slim=20;ui.mfocus=null;tabTo('move');return;}
@@ -1127,7 +1172,7 @@ app.addEventListener('click',e=>{
   case 'reset3d':R3&&R3.reset();break;
   case 'locate':locate();break;
   case 'locoff':ui.me=null;ui.route=null;ui.locErr='';render();toast('내 위치를 지웠어요. 브라우저 권한은 사이트 설정에서 끌 수 있어요');break;
-  case 'reset':if(!confirm('가입 정보, 티켓, 올린 시야를 이 브라우저에서 모두 지울까요?'))return;try{localStorage.removeItem(KEY);}catch(e){}location.reload();break;
+  case 'reset':if(!confirm('가입 정보, 티켓, 올린 시야를 이 브라우저에서 모두 지울까요?'))return;try{localStorage.removeItem(KEY);localStorage.removeItem(OFF_KEY);}catch(e){}location.reload();break;
   case 'consent':ui.draft=(document.getElementById('rtext')||{}).value||'';ui.consent=!ui.consent;render();break;
   case 'post':{const txt=document.getElementById('rtext').value.trim()||'한 줄 후기 없음';
     if(!(ui.reviewImg&&ui.rating&&ui.consent)){toast('사진, 별점, 동의가 필요해요');return;}
@@ -1141,6 +1186,7 @@ app.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nick'){con
 
 render();
 loadShops();
+if('serviceWorker' in navigator&&window.isSecureContext)navigator.serviceWorker.register('sw.js').then(()=>{NET.sw=true;}).catch(()=>{});
 })();
 </script>
 
