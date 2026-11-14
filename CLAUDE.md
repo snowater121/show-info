@@ -45,8 +45,10 @@
    - `PLACES`: 돔, 지하철역, 버스 정류장, 주차장. `lat/lng`가 없고 `addr`만 있으면 네이버 Geocoding으로 찾음. 둘 다 없으면 "위치 확인 필요" + 네이버 지도 검색 링크
    - `loadNaver()`: config.js 읽어 스크립트 로드. 실패하면 `NAV.why`에 이유를 남기고 실제 좌표로 그린 SVG 약도로 대체
    - `mountMap()`, `focusHTML()`, `setFocus()`
+   - 내 위치와 길 안내: `locate()`가 브라우저 위치 권한으로 `ui.me`를 채움(**저장하지 않음**, 이번 접속에서만). 목록은 가까운 순 정렬, 지도에 내 위치와 목적지 사이 점선, 직선 거리만 표시. `startRoute()`는 네이버 지도 앱 URL Scheme(`nmap://route/walk|public|car`, Android는 `intent://`)으로 내 위치 출발 길 안내를 넘김. 컴퓨터에서는 네이버 지도 장소 검색을 엶
+   - `kind:'near'`(편의점, 식당, 카페, 약국): 상가 좌표가 없어 네이버 지도 검색으로 연결. 상가정보 연동(남은 작업 6) 후 좌표 있는 장소로 교체
 6. **상태**: `S`(localStorage 키 `gocheok-app-v1`에 저장: 닉네임, 티켓, 공연장, 내가 올린 시야, 알림), `ui`(화면 상태, 저장 안 함), `stack`(화면 이동 기록)
-7. **SCREENS**: `start, signup, home, ticket, sight, view, upload, place, move, mapview, comm, venue`. 각 함수는 HTML 문자열을 반환하고, 3D나 지도가 필요하면 `ui._mount`에 마운트 함수를 넣는다
+7. **SCREENS**: `start, signup, home, ticket, sight, view, upload, place, move, mapview, comm, venue, my`. `my`는 마이페이지(탭 화면 헤더 오른쪽 사람 아이콘, `data-go="my"`). 각 함수는 HTML 문자열을 반환하고, 3D나 지도가 필요하면 `ui._mount`에 마운트 함수를 넣는다
 8. **render()**: 이전 3D/지도 정리(`disposeR3` → `disposeMap`) → innerHTML 교체 → `ui._mount` 실행
 9. **클릭 처리**: `#app` 하나에 이벤트 위임. `data-go`, `data-tab`, `data-act`, `data-sec`, `data-floor`, `data-vmode`, `data-mset`, `data-mapgo`, `data-mfocus` 등 data 속성으로 분기
 
@@ -118,7 +120,8 @@ python3 -m http.server 8000   # http://localhost:8000
 3. KOPIS 공연목록/상세 API 연동 (서비스 키는 서버에서 보관, CORS 때문에 중간 서버 필요). 고척돔 시설 코드로 필터 가능한지 확인
 4. 서울시 실시간 도시데이터 '고척돔' 장소 연동 (혼잡도 4단계, 주변 교통, 공영주차장)
 5. 코레일 시간표로 구일역 막차 표시 (구일역 포함 여부 확인 필요)
-6. 소상공인시장진흥공단 상가정보(위도, 경도 포함)로 상권 목록과 지도 표시 교체
+6. 소상공인시장진흥공단 상가정보(위도, 경도 포함)로 상권 목록과 지도 표시 교체 (이동 탭 '주변 상권'의 `kind:'near'` 항목도 같이)
+   - 앱 안에서 경로선과 소요 시간을 그리려면 네이버 Directions API(Secret 필요)를 서버에서 호출해야 함. 지금은 네이버 지도 앱으로 넘김
 7. 회원, 티켓, 시야 후기를 브라우저 저장소에서 실제 DB로 옮기기 (여러 사람이 공유하려면 필요)
 8. 운영자 화면 (검수, 신고 처리, 정보 갱신, 통계)
 9. 다른 공연장 데이터 추가 (공연장 모형 데이터만 추가하면 같은 화면이 동작하도록 유지)
