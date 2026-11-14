@@ -62,7 +62,7 @@ python3 -m http.server 8000
 | 공연 일정 | KOPIS 공연예술통합전산망 (API 연동 예정) | KGMA 1건 실제, 나머지 예시 |
 | 혼잡도 | 서울시 실시간 도시데이터 '고척돔' (API 연동 예정) | 예시 값 |
 | 구일역 막차 | 코레일 시간표 (연동 예정) | 미반영 |
-| 주변 상가 | 소상공인시장진흥공단 상가정보 (연동 예정) | 예시 값 |
+| 주변 상가 (고척돔 반경 500m 편의점, 식당, 카페, 약국 160곳) | [소상공인시장진흥공단 상가(상권)정보](https://www.data.go.kr/data/15083033/fileData.do) 2026-09-30 기준, 수도권(서울, 인천, 경기) 파일에서 추출 (2026-11-14 확인) | 반영, 영업시간은 원자료에 없어 확인 필요 |
 
 ## 데모 한계
 
@@ -74,3 +74,16 @@ python3 -m http.server 8000
 - [three.js r128](https://threejs.org/) (cdnjs)
 - [NAVER Maps JavaScript API v3](https://navermaps.github.io/maps.js.ncp/)
 - Noto Sans KR (Google Fonts)
+
+## 주변 상가 데이터 갱신
+
+상가정보는 분기마다 새로 올라옵니다. 원본 CSV(시도별 수백 MB)는 저장소에 올리지 않고, 필요한 부분만 `data/shops.json`으로 뽑아 씁니다.
+
+1. 공공데이터포털에서 「소상공인시장진흥공단_상가(상권)정보」 zip을 받아 압축을 풉니다.
+2. 수도권 파일 세 개를 넘겨 실행합니다.
+
+```bash
+python3 tools/build_shops.py --base 2026-09-30 경로/*_서울_*.csv 경로/*_인천_*.csv 경로/*_경기_*.csv
+```
+
+3. 공연장을 늘릴 때는 `tools/build_shops.py`의 `VENUES`에 확인한 좌표를 추가하고 다시 실행합니다.
