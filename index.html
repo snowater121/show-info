@@ -135,7 +135,16 @@ textarea.input{min-height:110px;resize:vertical}
 .mk.mk-me{background:#0a0a0a;color:#fafafa;border-color:#fafafa;box-shadow:0 0 0 3px #0a0a0a,0 2px 6px rgba(0,0,0,.3)}
 .mapcanvas .pt.me circle{fill:var(--inv);stroke:var(--card);stroke-width:8}
 .mapcanvas .routeline{stroke:var(--inv);stroke-width:10;stroke-dasharray:30 20}
-.on>.mk{outline:3px solid #fafafa;outline-offset:-1px}
+.on>.mk,.mk.on{background:#0a0a0a;color:#fafafa;outline:3px solid #fafafa;outline-offset:-1px}
+.mk-shop{font-size:11px;padding:2px 7px}
+.mk-n{display:inline-block;margin-left:5px;padding:0 5px;border-radius:999px;background:#0a0a0a;color:#fafafa;font-size:10px;line-height:15px;vertical-align:1px}
+.mk-subway .mk-n,.mk-dome .mk-n,.mk.on .mk-n{background:#fafafa;color:#0a0a0a}
+.mk-dot{transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#fafafa;border:2px solid #0a0a0a;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.mk-list{display:flex;flex-direction:column;max-height:180px;overflow:auto;min-width:160px;background:#fafafa;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);font-family:"Noto Sans KR",sans-serif}
+.mk-list button{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;text-align:left;font-size:13px;color:inherit;background:none;border:0;border-bottom:1px solid #e5e5e5;cursor:pointer}
+.mk-list button:last-child{border-bottom:0}
+.mk-list span{color:#737373;font-size:12px;white-space:nowrap}
+.mapcanvas .pt.dot circle{stroke-width:6}
 .focus{gap:6px}
 .stage3d{position:relative;height:270px;border-radius:12px;overflow:hidden;background:#121212;touch-action:none;flex:none;user-select:none;-webkit-user-select:none}
 .stage3d canvas{display:block;width:100%;height:100%;cursor:grab}
@@ -500,6 +509,18 @@ function disposeMap(){if(MAPH){try{MAPH.dispose();}catch(e){}MAPH=null;}}
 function focusHTML(p){if(!p)return '<span class="t-sm">목록이나 지도 표시를 누르면 위치와 설명이 나와요</span>';
  if(p.kind==='near')return `<span style="display:flex;align-items:center;gap:8px"><span class="tag">${KIND[p.kind]}</span><b style="font-size:15px;flex:1;min-width:0">${esc(p.name)}</b></span><span class="t-sm">${esc(p.desc||'')}</span>${routeHTML(p)}`;
  return `<span style="display:flex;align-items:center;gap:8px"><span class="tag">${esc(p.cat||KIND[p.kind]||'')}</span><b style="font-size:15px;flex:1;min-width:0">${esc(p.name)}</b></span><span class="t-sm">${esc(p.desc||'')}</span>${p.kind==='shop'?`<span class="t-cap">돔에서 직선 약 ${fmtDist(p.dv)}. 영업시간은 원자료에 없어 방문 전 확인해 주세요</span>`:''}${p.lat==null?'<span class="t-cap">정확한 위치는 아직 등록 전이에요. 네이버 지도 검색으로 확인해 주세요</span>':p.approx?'<span class="t-cap">건물 주소 기준 위치예요</span>':''}${routeHTML(p)}<a class="t-sm" style="color:var(--tp);font-weight:700" href="${naverLink(shortN(p.name))}" target="_blank" rel="noopener">네이버 지도에서 보기 ↗</a>`;}
+/* 지도 이름표 묶기: 우선순위(선택한 곳 > 돔 > 지하철 > 버스, 주차 > 상가, 상가는 돔에서 가까운 순)로 하나씩 놓고,
+   이미 놓인 이름표와 겹치면 그 묶음에 넣는다. 선택한 곳, 돔, 지하철은 항상 자기 이름표를 가진다.
+   pos(p)=[x,y] 화면 좌표, size(p)=[w,h] 이름표 크기. 반환: [{items:[대표, ...], rank}] */
+function placeGroups(pts,focus,pos,size){
+ const pr=p=>p.id===focus?0:p.kind==='dome'?1:p.kind==='subway'?2:p.kind==='shop'?4:3;
+ const order=pts.slice().sort((a,b)=>pr(a)-pr(b)||(a.dv||0)-(b.dv||0));
+ const groups=[];
+ order.forEach(p=>{const [x,y]=pos(p),[w,h]=size(p);const rc=[x-w/2-3,y-h/2-3,x+w/2+3,y+h/2+3];
+  const g=pr(p)>2&&groups.find(g=>rc[0]<g.rc[2]&&rc[2]>g.rc[0]&&rc[1]<g.rc[3]&&rc[3]>g.rc[1]);
+  if(g)g.items.push(p);else groups.push({items:[p],rc,rank:groups.length});});
+ return groups;}
+
 function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
  const pick=()=>PLACES.filter(p=>(p.kind==='dome'||kinds.includes(p.kind))&&p.lat!=null&&(!filter||p.kind==='dome'||filter(p)));
  let api={dispose(){},focus(){}};
@@ -515,7 +536,9 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
   const [dx,dy]=xy(placeById('dome'));s+=`<ellipse cx="${dx}" cy="${dy}" rx="${fs*2.2}" ry="${fs*1.8}" class="domeshape"/>`;
   const meIn=ui.me&&distM(ui.me,placeById('dome'))<3000;const fp=focus&&placeById(focus);
   if(meIn&&fp&&fp.lat!=null){const [mx,my]=xy(ui.me),[px,py]=xy(fp);s+=`<line x1="${mx}" y1="${my}" x2="${px}" y2="${py}" class="routeline"/>`;}
-  pts.forEach(p=>{const [x,y]=xy(p);const on=focus===p.id;s+=`<g class="pt ${p.kind} ${on?'on':''}" data-mfocus="${p.id}"><circle cx="${x}" cy="${y}" r="${fs*0.55}"/><text x="${x}" y="${y-fs*0.95}" text-anchor="middle" font-size="${fs*0.9}">${esc(shortN(p.name))}</text></g>`;});
+  const groups=placeGroups(pts,focus,p=>{const [x,y]=xy(p);return [x,y-fs*0.95];},p=>[shortN(p.name).length*fs*0.9+fs,fs*1.3]);
+  groups.slice().reverse().forEach(g=>g.items.slice(1).forEach(p=>{const [x,y]=xy(p);s+=`<g class="pt dot ${p.kind}" data-mfocus="${p.id}"><circle cx="${x}" cy="${y}" r="${fs*0.3}"/></g>`;}));
+  groups.slice().reverse().forEach(g=>{const p=g.items[0];const [x,y]=xy(p);const on=focus===p.id;const n=g.items.length-1;s+=`<g class="pt ${p.kind} ${on?'on':''}" data-mfocus="${p.id}"><circle cx="${x}" cy="${y}" r="${fs*0.55}"/><text x="${x}" y="${y-fs*0.95}" text-anchor="middle" font-size="${fs*0.9}">${esc(shortN(p.name))}${n?` +${n}`:''}</text></g>`;});
   if(meIn){const [mx,my]=xy(ui.me);s+=`<g class="pt me"><circle cx="${mx}" cy="${my}" r="${fs*0.5}"/><text x="${mx}" y="${my-fs*0.9}" text-anchor="middle" font-size="${fs*0.85}">내 위치</text></g>`;}
   s+=`<text x="${x1-fs*0.5}" y="${y1-fs*0.6}" text-anchor="end" font-size="${fs*0.7}" class="cap">250m 격자, 위가 북쪽</text></svg>`;
   box.innerHTML=s+`<div class="mapnote">약도: ${esc(why||'')}${ui.me&&!meIn?' 내 위치는 약도 범위 밖이에요':''}</div>`;
@@ -525,13 +548,23 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
   geocodeAll().then(()=>{if(!box.isConnected)return;
    const map=new naver.maps.Map(box,{center:new naver.maps.LatLng(37.4982,126.8672),zoom:15,scaleControl:false,mapDataControl:false,logoControlOptions:{position:naver.maps.Position.BOTTOM_LEFT}});
    const iw=new naver.maps.InfoWindow({content:'',borderWidth:0,backgroundColor:'transparent',disableAnchor:true,pixelOffset:new naver.maps.Point(0,-14)});
-   const marks={};
+   const marks={},look={},grpOf={};
+   /* 이름표가 겹치면 하나로 묶는다: 우선순위가 높은 이름표만 보이고, 겹친 곳은 점 + 묶음 수(+n) */
+   const layout=()=>{const proj=map.getProjection();if(!proj)return;
+    const groups=placeGroups(pick(),focus,p=>{const o=proj.fromCoordToOffset(new naver.maps.LatLng(p.lat,p.lng));return [o.x,o.y];},p=>[shortN(p.name).length*12+(p.kind==='shop'?20:24),p.kind==='shop'?22:24]);
+    groups.forEach(g=>g.items.forEach((p,i)=>{grpOf[p.id]=g;const m=marks[p.id];const lead=i===0,on=p.id===focus;
+     const key=lead?`L${g.items.length}${on?'o':''}`:'d';if(look[p.id]===key)return;look[p.id]=key;
+     m.setIcon({content:lead?`<div class="mk mk-${p.kind}${on?' on':''}">${esc(shortN(p.name))}${g.items.length>1?`<span class="mk-n">+${g.items.length-1}</span>`:''}</div>`:`<div class="mk-dot mk-${p.kind}"></div>`,anchor:new naver.maps.Point(0,0)});
+     m.setZIndex(lead?(on?150:100-g.rank):10);}));};
+   const pickAt=id=>{const g=grpOf[id];if(!g||g.items.length<2||g.items[0].id!==id)return false;
+    if(map.getZoom()>=18){iw.setContent(`<div class="mk-list" role="list">${g.items.map(p=>`<button data-mfocus="${p.id}"><b>${esc(shortN(p.name))}</b><span>${esc(p.cat||KIND[p.kind]||'')}</span></button>`).join('')}</div>`);iw.open(map,marks[id]);return true;}
+    const b=new naver.maps.LatLngBounds();g.items.forEach(p=>b.extend(new naver.maps.LatLng(p.lat,p.lng)));map.fitBounds(b,{top:60,right:60,bottom:60,left:60});if(map.getZoom()>18)map.setZoom(18,true);return true;};
    pick().forEach(p=>{const m=new naver.maps.Marker({position:new naver.maps.LatLng(p.lat,p.lng),map,icon:{content:`<div class="mk mk-${p.kind}">${esc(shortN(p.name))}</div>`,anchor:new naver.maps.Point(0,0)}});
-    naver.maps.Event.addListener(m,'click',()=>{api.focus(p.id);onFocus&&onFocus(p.id);});marks[p.id]=m;});
+    naver.maps.Event.addListener(m,'click',()=>{if(pickAt(p.id))return;api.focus(p.id);onFocus&&onFocus(p.id);});marks[p.id]=m;});
+   naver.maps.Event.addListener(map,'idle',layout);naver.maps.Event.addListener(map,'click',()=>iw.close());
    let meMk=null,line=null;
    if(ui.me){meMk=new naver.maps.Marker({position:new naver.maps.LatLng(ui.me.lat,ui.me.lng),map,zIndex:200,icon:{content:'<div class="mk mk-me">내 위치</div>',anchor:new naver.maps.Point(0,0)}});}
-   api.focus=id=>{const p=placeById(id);
-    Object.entries(marks).forEach(([k,m])=>{const el=m.getElement&&m.getElement();if(el)el.classList.toggle('on',k===id);});
+   api.focus=id=>{const p=placeById(id);focus=id;iw.close();layout();
     if(line){line.setMap(null);line=null;}
     if(!p||p.lat==null){if(meMk)map.panTo(meMk.getPosition());return;}
     const to=new naver.maps.LatLng(p.lat,p.lng);
