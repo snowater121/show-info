@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="고척스카이돔 공연 관람 통합 정보 서비스 MVP (정보시스템 설계와 평가 과제)">
+<meta name="description" content="show info, 공연 관람 통합 정보 서비스 MVP (정보시스템 설계와 평가 과제)">
 <style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
-<title>고척돔 공연 가이드</title>
+<title>show info</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,6 +110,8 @@ textarea.input{min-height:110px;resize:vertical}
 .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:var(--inv);color:var(--on-inv);padding:10px 16px;border-radius:999px;font-size:13px;white-space:nowrap;z-index:5;transition:opacity .2s}
 .toast[hidden]{display:none!important}
 .big{font-size:28px;font-weight:700;letter-spacing:-0.02em;font-variant-numeric:tabular-nums}
+.feat{display:flex;flex-direction:column;gap:14px;margin-top:12px}
+.feat span{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:500}
 .hero{font-size:30px;font-weight:700;line-height:1.35;letter-spacing:-0.02em;margin:0;text-wrap:balance}
 .err{font-size:12px;color:var(--ts)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -845,17 +847,17 @@ const fmtAt=iso=>{if(!iso)return '이전 기록';const d=new Date(iso);return `$
 const SCREENS={
 start:()=>`<div class="body" style="padding-top:60px;gap:16px">
   <div class="logo">${ic('ticket',34)}</div>
-  <span class="t-sm" style="font-weight:500">[앱 이름]</span>
-  <p class="hero">고척돔 공연,<br>티켓 하나로 끝까지</p>
-  <p class="t-sm" style="font-size:16px;margin:0">시야, 입장, 귀가까지<br>내 좌석 기준으로 안내해요</p>
+  <span class="t-sm" style="font-weight:500">show info</span>
+  <p class="hero">공연 날 필요한 정보,<br>한 곳에서</p>
+  <div class="feat">${[['eye','좌석 시야 미리 보기'],['pin','출입문, 편의시설, 주변 상가'],['train','덜 붐비는 귀갓길과 귀가 알림'],['chat','관람객 커뮤니티']].map(([i,t])=>`<span>${ic(i,20)}${t}</span>`).join('')}</div>
   <div class="spacer"></div>
   <button class="btn primary" data-go="signup">카카오로 시작하기</button>
   <button class="btn secondary" data-go="signup">이메일로 시작하기</button>
-  <span class="t-cap" style="text-align:center">가입한 회원만 이용할 수 있어요. 티켓 인증은 가입 뒤 원하는 분만 해요</span>
+  <span class="t-cap" style="text-align:center">가입한 회원만 이용할 수 있어요.</span>
  </div>`,
 
 signup:()=>{const all=ui.agree.every(Boolean);const ok=ui.agree[0]&&ui.agree[1]&&/^.{2,10}$/.test(S.nick.trim());
- const items=['[필수] 서비스 이용약관','[필수] 개인정보 수집 및 이용','[선택] 위치 정보 (출입문, 길 안내)','[선택] 알림 (예매 오픈, 출발 시각)'];
+ const items=['[필수] 서비스 이용약관','[필수] 개인정보 수집 및 이용','[선택] 위치 정보 (출입문, 길 안내)','[선택] 귀가 알림 (종료 30분 전, 10분 전)'];
  return hdr('회원가입',{backBtn:true})+`<div class="body">
   <h2 style="font-size:20px">닉네임을 정해 주세요</h2>
   <div class="field"><label for="nick">닉네임</label><input id="nick" class="input" maxlength="10" placeholder="2~10자, 후기에 표시돼요" value="${esc(S.nick)}" autocomplete="nickname"></div>
@@ -875,7 +877,7 @@ home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const lis
  const dday=s=>s.ymd<today?'종료':s.ymd===today?'오늘':`D-${Math.round((new Date(s.ymd)-new Date(today))/864e5)}`;
  const first=Math.max(0,list.findIndex(s=>s.ymd>=today));
  ui._mount=()=>mountBanner(first);
- const banner=`<section class="banner" aria-roledescription="carousel" aria-label="이번 달 ${esc(v.name)} 공연">
+ const banner=`<h2>${esc(v.name)} 공연 일정</h2><section class="banner" aria-roledescription="carousel" aria-label="이번 달 ${esc(v.name)} 공연">
   <div class="bn-track" id="bnTrack">${list.map((s,i)=>`<article class="bn-slide${s.ymd<today?' done':''}" aria-roledescription="slide" aria-label="${i+1}/${list.length}">
    <span class="bn-top"><span class="bn-badge">${dday(s)}</span>${s.real?'':'<span class="bn-badge ghost">예시</span>'}</span>
    <span class="bn-date">${s.date} (${s.dow})</span>
@@ -889,24 +891,36 @@ home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const lis
   <div class="card line board">${offs.map(o=>`<a class="brow" href="${esc(o.url)}" target="_blank" rel="noopener"><span class="tag">${esc(o.cat)}</span><span class="grow"><b>${esc(o.title)}</b><span class="t-cap">${esc(o.src)}${o.date?`, ${o.date}`:''}</span></span>${ic('chevron-right',18)}</a>`).join('')}</div>
   <span class="t-cap">공식 기관과 예매처 글의 제목, 출처, 링크만 모았어요. 내용은 원문에서 확인해 주세요 (2026-11-14 확인)</span>`
   :`<div class="card" style="gap:6px">${ic('box',24)}<span class="t-sm">이 공연장의 공식 안내는 준비 중이에요</span></div>`}`;
+ /* 홈 순서: 내 티켓(없으면 등록 안내 + 둘러보기) → 공연 일정 배너 → 커뮤니티 새 글 → 공식 안내.
+    예매한 뒤 쓰는 앱이라 내 공연이 맨 위. 공연 당일이 아니면 "관람 준비", 당일이면 "오늘 할 일" */
  let main;
- if(t){main=`<div class="card inv" style="padding:20px;gap:6px">
-   <span class="m" style="font-size:12px;font-weight:700">관람 예정</span>
+ if(t){const isToday=sh.ymd===today,isPast=sh.ymd<today;
+  main=`<div class="card inv" style="padding:20px;gap:6px">
+   <span style="display:flex;align-items:center;gap:8px"><span class="m" style="flex:1;font-size:12px;font-weight:700">${isPast?'지난 공연':'관람 예정'}</span><span class="bn-badge">${dday(sh)}</span></span>
    <span style="font-size:22px;font-weight:700">${esc(sh.name)}</span>
    <span>${sh.date}(${sh.dow}) ${sh.start||'시간 확인 필요'}${sh.start?' 시작':''}, ${(o=>o.est?`입장 ${o.text} (예정)`:`${o.text} 입장`)(DB.openInfo(sh.id))}</span><hr>
-   <span style="display:flex;align-items:center"><b style="flex:1;font-size:15px">${esc(seatText(t))}</b><span class="m" style="font-size:12px;font-weight:500">${tState(t)}</span></span>
+   <span style="display:flex;align-items:center;gap:8px"><b style="flex:1;font-size:15px">${esc(seatText(t))}</b>${(st=>st==='확인용 등록'?'<button class="bn-badge" data-act="reverify">티켓 인증하기</button>':`<span class="m" style="font-size:12px;font-weight:500">${st==='인증 완료'?'인증 회원':st}</span>`)(tState(t))}</span>
   </div>
-  <h2>오늘 할 일</h2>
+  <h2>${isToday?'오늘 할 일':isPast?'내 공연 정보':'관람 준비'}</h2>
   ${row('내 자리 시야 보기',`${t.floor} ${t.zone}구역에서 본 무대 (3D)`,'eye','myseat')}
   ${row('입장 출입문 확인','내 좌석 기준 추천 출입문','pin','place')}
-  ${row('귀가 안내',sh.end?`구일역 도착 약 ${addMin(sh.end,23)}, 덜 붐비는 역도 안내`:'종료 시각 공지 전, 덜 붐비는 역 안내','train','move')}
-  <div class="card line" style="padding:14px;gap:4px"><b style="font-size:13px">공연 당일 날씨</b><span class="t-sm">맑음, 저녁 8℃. 귀갓길 겉옷 챙기기</span><span class="t-cap">기상청 단기예보 (예시 값)</span></div>`;}
- else{main=`<div class="card" style="padding:20px;gap:10px">${ic('ticket',28)}<b style="font-size:16px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b><span class="t-sm">티켓을 등록하면 내 좌석 기준으로<br>시야, 입장, 귀가를 안내해요</span><button class="btn primary" data-go="ticket">내 티켓 등록</button></div>`;}
+  ${row('귀가 안내',`${sh.end?`구일역 도착 약 ${addMin(sh.end,23)}`:'종료 시각 공지 전'}, 귀가 알림 ${S.alarm?'켜짐 (종료 30분, 10분 전)':'꺼짐'}`,'train','move')}
+  ${isToday&&!OFF.at&&S.venue==='gocheok'?`<button class="row" data-act="offsave" ${NET.busy?'disabled':''}>${ic('download',22)}<span class="grow"><b>공연장 들어가기 전에 저장</b><span class="t-sm">${NET.busy?'저장 중':'데이터가 안 터져도 이동, 공연장 정보를 볼 수 있어요'}</span></span>${ic('chevron-right',20)}</button>`:''}
+  ${isToday?'<div class="card line" style="padding:14px;gap:4px"><b style="font-size:13px">오늘 날씨</b><span class="t-sm">맑음, 저녁 8℃. 귀갓길 겉옷 챙기기</span><span class="t-cap">기상청 단기예보 (예시 값)</span></div>':''}`;}
+ else{main=`<div class="row" style="padding:14px;gap:12px">${ic('ticket',22)}<span class="grow"><b style="font-size:14px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b><span class="t-cap">티켓을 등록하면 내 좌석 기준으로 안내해요</span></span><button class="tag" data-go="ticket">티켓 등록</button></div>
+  <h2>공연장 둘러보기</h2>
+  ${row('좌석 시야 보기','구역별 무대 시야와 후기','eye','sight')}
+  ${row('출입문과 편의시설','출입문, 매점, 화장실, 주변 상가','pin','place')}
+  ${row('오는 길과 귀갓길','지하철, 버스, 주차, 덜 붐비는 역','train','move')}
+  ${row('커뮤니티','시야 후기, 동행, 공연 정보','chat','comm')}`;}
+ const news=allComm().filter(p=>canSee(p)&&(p.tab!=='동행'||isCert())).slice(0,3);
+ const comm=news.length?`<h2>커뮤니티 새 글</h2>${news.map(cRow).join('')}<button class="btn secondary" data-go="comm">커뮤니티 더 보기</button>`:'';
  return hdr(v.name,{venue:true,bell:true})+`<div class="body">
   ${DD().notices.filter(n=>n.on).map(n=>`<div class="row" style="background:var(--card);border:1px solid var(--bstrong);padding:12px 14px;gap:10px">${ic('bell',18)}<span class="grow" style="font-size:13px;font-weight:500">${esc(n.title)}</span><span class="t-cap">운영자 공지</span></div>`).join('')}
-  ${banner}
-  ${t?'<span class="t-cap">내 티켓의 공연장으로 홈이 자동으로 바뀌어요</span>':''}${standing()?'<span class="t-acc">확장 예시 화면이에요. 공연 목록은 예시 값</span>':''}
+  ${standing()?'<span class="t-acc">확장 예시 화면이에요. 공연 목록은 예시 값</span>':''}
   ${main}
+  ${banner}
+  ${comm}
   ${board}
   <span class="t-cap">공연 정보 출처: 주최 측 공식 발표 보도 (KOPIS 연동 예정). 시간이 비어 있으면 공식 공지 확인 전이에요</span>
  </div>`+tabbar('home');},
@@ -1089,7 +1103,7 @@ mapview:()=>{const kinds=ui.mapKinds||['subway'];const list=PLACES.filter(p=>kin
 
 comm:()=>{const sh=show();const cert=isCert();
  const pend=!cert&&mem().pending;
- const member=`<div class="row" style="padding:10px 14px;gap:10px">${ic(cert?'check':pend?'shield':'user',20)}<span class="grow"><b style="font-size:13px">${cert?'인증 회원':pend?'일반 회원, 인증 대기':'일반 회원'}</b><span class="t-cap">${cert?'동행 구하기, 공개 범위 지정, 내 좌석 시야 등록을 쓸 수 있어요':pend?'운영자가 예매 캡처와 전화번호를 대조하고 있어요':'티켓을 인증하면 동행 구하기와 공개 범위 지정을 쓸 수 있어요'}</span></span>${cert||pend?'':'<button class="tag" data-act="reverify">인증하기</button>'}</div>`;
+ const member=`<div class="row" style="padding:10px 14px;gap:10px">${ic(cert?'check':pend?'shield':'user',20)}<span class="grow"><b style="font-size:13px">${cert?'인증 회원':pend?'일반 회원, 인증 대기':'일반 회원'}</b><span class="t-cap">${cert?'동행 구하기, 공개 범위 지정, 내 좌석 시야 등록을 쓸 수 있어요':pend?'운영자가 예매 캡처와 전화번호를 대조하고 있어요':'티켓을 인증하면 동행 구하기, 시야 등록도 할 수 있어요'}</span></span>${cert||pend?'':'<button class="tag" data-act="reverify">인증하기</button>'}</div>`;
  const posts=tab=>{const l=allComm().filter(p=>p.tab===tab);return l.length?l.map(cRow).join(''):'<div class="card"><span class="t-sm">아직 글이 없어요</span></div>';};
  let inner,act='';
  if(ui.ctab==='시야 후기'){const all=allReviews();
@@ -1187,7 +1201,7 @@ function render(){
  if(ui._mount){try{ui._mount();}catch(err){console.error(err);const el=app.querySelector('.stage3d');if(el)el.innerHTML='<div class="msg">3D 화면을 그리지 못했어요</div>';}}
  if(sameView){const b=app.querySelector('.body');if(b)b.scrollTop=keepScroll;}
  bindInputs();
- document.title=(v==='start'?'':'')+'고척돔 공연 가이드';
+ document.title='show info';
 }
 
 function readImg(file,cb){if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');const s=Math.min(1,720/Math.max(img.width,img.height));c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.8));};img.src=r.result;};r.readAsDataURL(file);}
@@ -1240,7 +1254,7 @@ app.addEventListener('click',e=>{
  if(d.mapgo){const T={parking:['주차장',['parking']],dome:['고척스카이돔',['dome']],subway:['오는 길',['subway','bus']]};const [t,k]=T[d.mapgo];ui.mapTitle=t;ui.mapKinds=k;ui.mfocus=d.mf||null;go('mapview');return;}
  if(d.go){if(d.go==='myseat'){const m=mySec();if(!m){toast('구조도에 있는 좌석을 등록하면 볼 수 있어요');tabTo('sight');return;}ui.sec=m;ui.vmode='3d';const pp=parseSec(m);ui.floor=pp.ground?0:pp.f;stack=['sight','view'];render();return;}
    if(d.go==='upload'){ui.reviewImg=null;ui.draft='';ui.rating=0;ui.consent=false;ui.tags=new Set();}
-   if(['sight','place','move'].includes(d.go)){tabTo(d.go);return;}
+   if(['sight','place','move','comm'].includes(d.go)){tabTo(d.go);return;}
    go(d.go);return;}
  if(d.sec){ui.sec=d.sec;render();return;}
  if(d.floor){ui.floor=d.floor==='플로어'?0:parseInt(d.floor,10);ui.sec=null;render();return;}
@@ -1271,7 +1285,7 @@ app.addEventListener('click',e=>{
   case 'isend':{keepI();const text=(ui.itext||'').trim();if(!ui.itarget||!text){toast('어느 곳인지와 내용을 적어 주세요');return;}
     DB.set(x=>{x.infos.unshift({id:DB.id('i'),uid:S.uid,kind:ui.ikind,target:ui.itarget,text:maskContact(text),by:S.nick||'회원',at:Date.now(),status:'대기'});});
     ui.itext='';back();toast('보내 주셔서 고마워요. 운영자가 확인해요');break;}
-  case 'bell':toast(S.ticket?'예매 오픈과 출발 알림을 받고 있어요':'티켓을 등록하면 알림을 받을 수 있어요');break;
+  case 'bell':toast(!S.ticket?'티켓을 등록하면 귀가 알림을 받을 수 있어요':S.alarm?'귀가 알림 켜짐, 종료 30분 전과 10분 전':'귀가 알림이 꺼져 있어요. 마이페이지에서 켤 수 있어요');break;
   case 'join':S.joined=true;S.nick=S.nick.trim();save();stack=['home'];render();toast(`${S.nick}님, 가입을 마쳤어요`);break;
   case 'register':{saveDraft();const x=S._draft;if(!x.floor||!x.zone||!x.row||!x.no){toast('좌석 정보를 모두 입력해 주세요');return;}
     const phoneOk=/^01[016789]\d{7,8}$/.test((ui.phone||'').replace(/\D/g,''));
