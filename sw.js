@@ -5,9 +5,9 @@
  * - three.js, 글꼴: 저장본 먼저 (버전이 고정된 파일)
  * - 네이버 지도, Tmap, ODsay 같은 외부 API는 건드리지 않는다 (지도 타일은 저장하지 않음, 오프라인이면 약도로 대체)
  * 앱 파일을 바꿨을 때 VERSION을 올리면 예전 저장본을 지운다 */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'show-info-' + VERSION;
-const SHELL = ['./', 'index.html', 'config.js', 'data/shops.json'];
+const SHELL = ['./', 'index.html', 'admin.html', 'config.js', 'store.js', 'data/shops.json'];
 const LIBS = [
   'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap'

@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>운영자 관리</title>
+<meta name="description" content="고척돔 공연 통합 정보 서비스 운영자 화면 (데모, 앱과 같은 브라우저 저장소를 씀)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+/* 토큰은 앱(index.html)과 같은 Figma "Theme" 값 */
+:root{--bg:#fafafa;--card:#ffffff;--muted:#f0f0f0;--ph:#e5e5e5;--inv:#0a0a0a;--border:#e5e5e5;--bstrong:#0a0a0a;--tp:#0a0a0a;--ts:#525252;--on-inv:#ffffff;--on-inv-m:#a3a3a3;--focus:#737373;--icon-ph:#8a8a8a;--sel:#f5f5f5;
+ --font:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#000;--card:#111;--muted:#1c1c1c;--ph:#262626;--inv:#fafafa;--border:#2e2e2e;--bstrong:#fafafa;--tp:#fafafa;--ts:#a3a3a3;--on-inv:#0a0a0a;--on-inv-m:#525252;--focus:#8a8a8a;--icon-ph:#737373;--sel:#181818;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#000;--card:#111;--muted:#1c1c1c;--ph:#262626;--inv:#fafafa;--border:#2e2e2e;--bstrong:#fafafa;--tp:#fafafa;--ts:#a3a3a3;--on-inv:#0a0a0a;--on-inv-m:#525252;--focus:#8a8a8a;--icon-ph:#737373;--sel:#181818;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--tp);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;text-align:left}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+a{color:inherit}
+.ic{width:var(--s,20px);height:var(--s,20px);flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.shell{display:flex;min-height:100%}
+.side{width:240px;flex:none;background:var(--card);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.logo{padding:0 12px 20px;display:flex;flex-direction:column}
+.logo b{font-size:16px}
+.logo span,.me span{font-size:12px;color:var(--ts)}
+.nav{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-weight:500;color:var(--ts);text-decoration:none;white-space:nowrap}
+.nav:hover{background:var(--muted)}
+.nav[aria-current="page"]{background:var(--inv);color:var(--on-inv)}
+.nav .n{margin-left:auto;min-width:22px;height:20px;border-radius:10px;background:var(--inv);color:var(--on-inv);font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 6px}
+.nav[aria-current="page"] .n{background:var(--on-inv);color:var(--inv)}
+.side .sp{flex:1}
+.me{padding:0 12px;display:flex;flex-direction:column;font-size:13px;font-weight:500}
+main{flex:1;min-width:0;padding:24px 32px 48px;display:flex;flex-direction:column;gap:20px}
+.top{display:flex;align-items:center;gap:12px}
+.top h1{font-size:24px;margin:0;line-height:1.3}
+.top .sub{font-size:13px;color:var(--ts)}
+.vsel{display:flex;align-items:center;gap:6px;padding:9px 12px 9px 14px;border-radius:10px;background:var(--card);border:1px solid var(--border);font-weight:500;flex:none}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.soft{background:var(--muted);border-color:var(--muted)}
+.card.soft .tag:not(.on){background:var(--card)}
+.card.inv{background:var(--inv);color:var(--on-inv);border-color:var(--inv)}
+.card.inv .m{color:var(--on-inv-m)}
+.card h2{font-size:16px;margin:0}
+.grid{display:grid;gap:20px}
+.g2{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.q{display:flex;flex-direction:column;gap:4px;text-align:left}
+.q:hover{border-color:var(--bstrong)}
+.q .k{font-size:13px;color:var(--ts);font-weight:500}
+.q .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.cap{font-size:12px;color:var(--ts)}
+.sm{font-size:13px;color:var(--ts)}
+
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tw{border:1px solid var(--border);border-radius:12px;overflow:auto;background:var(--card)}
+.tbl th{background:var(--muted);color:var(--ts);font-weight:700;text-align:left;padding:10px 16px;white-space:nowrap}
+.tbl td{padding:12px 16px;border-top:1px solid var(--border);vertical-align:middle}
+.tbl tr.pick{cursor:pointer}
+.tbl tr.pick:hover td{background:var(--sel)}
+.tbl tr[aria-selected="true"] td{background:var(--muted);font-weight:500}
+.tbl input,.tbl select{width:100%;min-width:90px}
+.num{font-variant-numeric:tabular-nums}
+
+.tag{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 9px;font-size:12px;background:var(--muted);white-space:nowrap}
+.tag.on{background:var(--inv);color:var(--on-inv)}
+.tag.line{background:none;border:1px solid var(--border)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border-radius:999px;padding:6px 13px;font-size:13px;border:1px solid var(--border);background:var(--card)}
+.chip[aria-pressed="true"]{background:var(--inv);color:var(--on-inv);border-color:var(--inv)}
+.btn{height:40px;padding:0 16px;border-radius:10px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;text-decoration:none}
+.btn.primary{background:var(--inv);color:var(--on-inv)}
+.btn.secondary{background:var(--card);border:1px solid var(--bstrong)}
+.btn.soft{background:var(--muted)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn.s{height:32px;padding:0 12px;font-size:12px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.input,select.input,textarea.input{border:1px solid var(--border);background:var(--card);border-radius:10px;padding:9px 12px;font-size:14px;min-width:0}
+textarea.input{min-height:80px;resize:vertical;width:100%}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label,.lab{font-size:13px;font-weight:500;color:var(--ts)}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:8px 12px;font-size:13px;margin:0}
+.kv dt{color:var(--ts)}
+.kv dd{margin:0;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.ph{background:var(--ph);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--ts);font-size:12px;font-weight:500;overflow:hidden;position:relative;text-align:center;padding:12px}
+.ph .ic{color:var(--icon-ph)}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--inv)}
+.check{display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--inv)}
+.empty{padding:28px;text-align:center;color:var(--ts);font-size:13px}
+.log{display:flex;gap:12px;font-size:13px;padding:8px 0;border-top:1px solid var(--border)}
+.log:first-child{border-top:0}
+.log .t{color:var(--ts);flex:none;width:72px;font-variant-numeric:tabular-nums}
+.bars{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:8px}
+.bars div{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;font-size:11px;color:var(--ts)}
+.bars i{display:block;width:100%;max-width:40px;background:var(--inv);border-radius:6px 6px 0 0;min-height:2px}
+.photo{display:flex;flex-direction:column;gap:10px}
+.photo .ph{height:150px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--inv);color:var(--on-inv);padding:10px 18px;border-radius:999px;font-size:13px;z-index:9}
+.toast[hidden]{display:none}
+.hint{display:flex;gap:10px;align-items:flex-start;font-size:13px}
+
+/* 휴대폰과 태블릿: 사이드 메뉴를 위쪽 가로 메뉴로 바꾸고 2단을 1단으로 */
+@media (max-width:1100px){.g5{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){
+ .shell{flex-direction:column}
+ .side{position:sticky;top:0;z-index:5;width:100%;height:auto;flex-direction:row;align-items:center;padding:10px 16px;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border);scrollbar-width:none}
+ .side::-webkit-scrollbar{display:none}
+ .logo{padding:0 8px 0 0;flex:none}.logo span{display:none}
+ .side .sp,.me{display:none}
+ .nav{padding:8px 12px;flex:none}
+ main{padding:16px 16px 40px;gap:16px}
+ .g2,.g3{grid-template-columns:minmax(0,1fr)}
+ .g5,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .top{flex-wrap:wrap}.top h1{font-size:20px}
+ .kv{grid-template-columns:96px 1fr}
+ .card{padding:16px}
+ .tbl{min-width:560px}
+ .tbl td{white-space:nowrap}
+}
+</style>
+<script src="store.js"></script>
+</head>
+<body>
+<div class="shell">
+ <nav class="side" id="side" aria-label="운영자 메뉴"></nav>
+ <main id="main"></main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+(()=>{
+const ICONS={
+ home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1Z"/>',
+ ticket:'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
+ grid:'<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+ user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+ image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+ flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+ pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+ chart:'<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+ 'chevron-down':'<path d="m6 9 6 6 6-6"/>',
+ check:'<path d="M20 6 9 17l-5-5"/>',
+ alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+ x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+ ext:'<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>'
+};
+const ic=(n,s=20)=>`<svg class="ic" style="--s:${s}px" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nl=s=>esc(s).replace(/\n/g,'<br>');
+const D=()=>DB.get();
+const B=DB.BASE;
+const showName=id=>{const s=DB.show(id);return s?s.name:'공연 정보 없음';};
+const dt=t=>{const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
+const mask=p=>p?String(p).replace(/^(\d{3})-?\d{3,4}-?(\d{4})$/,'$1-****-$2'):'지움';
+let toastT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2000);}
+
+const PAGES=[['dash','대시보드','home','A-01'],['shows','공연 관리','ticket','A-02'],['seats','좌석 템플릿','grid','A-03'],['verifs','회원 인증 검수','user','A-04'],['sights','시야 사진 검수','image','A-05'],['reports','신고 처리','flag','A-06'],['places','장소 정보 관리','pin','A-07'],['stats','통계와 설정','chart','A-08']];
+const ui={sel:{},tab:{verifs:'대기',sights:'보류',reports:'접수',places:'주차장'},resetArm:false,chk:{}};
+const page=()=>{const h=location.hash.replace('#/','');return PAGES.some(p=>p[0]===h)?h:'dash';};
+
+const HOLD=s=>['AI 보류','AI 확인 중','숨김'].includes(s.status);
+function counts(){const d=D();return{
+ verifs:d.verifs.filter(v=>v.status==='대기').length,
+ sights:d.sights.filter(HOLD).length,
+ reports:d.reports.filter(r=>r.status==='접수').length,
+ places:d.infos.filter(x=>x.status==='대기').length,
+ seats:d.zoneCands.filter(z=>z.status==='대기').length,
+ shows:B.SHOWS.filter(s=>!s.done&&!(DB.show(s.id).gate)).length};}
+
+function side(){const c=counts();const cur=page();
+ return `<div class="logo"><b>[앱 이름]</b><span>운영자 관리</span></div>`+PAGES.map(([k,l,i])=>`<a class="nav" href="#/${k}" ${k===cur?'aria-current="page"':''}>${ic(i,18)}<span>${l}</span>${c[k]?`<span class="n">${c[k]}</span>`:''}</a>`).join('')+
+ `<div class="sp"></div><a class="nav" href="index.html" target="_blank" rel="noopener">${ic('ext',18)}<span>앱 화면 열기</span></a><div class="me">[운영자 이름]<span>검수 담당</span></div>`;}
+const top=(title,sub)=>`<div class="top"><div style="flex:1;min-width:0"><h1>${esc(title)}</h1>${sub?`<div class="sub">${esc(sub)}</div>`:''}</div><span class="vsel">고척스카이돔 ${ic('chevron-down',18)}</span></div>`;
+const tabs=(key,list)=>`<div class="chips" role="group">${list.map(([v,l])=>`<button class="chip" data-tab="${key}" data-v="${v}" aria-pressed="${ui.tab[key]===v}">${l}</button>`).join('')}</div>`;
+const ph=(label,h=160,img=null,icon='image')=>`<div class="ph" style="height:${h}px">${img?`<img src="${img}" alt="${esc(label)}">`:`${ic(icon,26)}<span>${esc(label)}</span>`}</div>`;
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+const target=r=>{const d=D();return r.type==='post'?d.posts.find(p=>p.id===r.tid):d.sights.find(s=>s.id===r.tid);};
+
+/* ---------- A-01 대시보드 ---------- */
+function dash(){const d=D();const c=counts();
+ const next=B.SHOWS.filter(s=>s.ymd>=today()).map(s=>DB.show(s.id))[0];const oi=next?DB.openInfo(next.id):null;
+ const q=[['회원 인증','verifs',c.verifs,'결제 내역, 전화번호 대조'],['시야 사진','sights',c.sights,'AI 보류, 신고로 숨김'],['신고','reports',c.reports,'30일 안에 처리'],['장소 제보','places',c.places,'주차, 시설, 교통'],['신규 구역 후보','seats',c.seats,'티켓 입력에서 들어온 구역']];
+ const links=[['KOPIS 공연목록','연동 예정','서비스 키는 서버에 보관'],['서울시 실시간 도시데이터 \'고척돔\'','연동 예정','혼잡도 4단계, 앱은 예시 값'],['소상공인 상가(상권)정보','반영','2026-09-30 자료, 분기마다 갱신'],['네이버 지도','연결됨','Dynamic Map'],['Tmap 보행자, ODsay 대중교통','연결됨','앱 안 경로'],['코레일 시간표 (구일역 막차)','연동 예정','구일역 포함 여부 확인 필요']];
+ return top('대시보드','처리할 일과 다음 공연을 한눈에 봐요')+`
+ <div class="card soft hint">${ic('alert',18)}<span>테스트 방법: <a href="index.html" target="_blank" rel="noopener"><b>앱 화면</b></a>을 옆 탭에 열고 인증 회원 신청, 시야 등록, 신고, '정보가 달라요'를 해 보세요. 여기 대기열에 바로 들어오고, 여기서 처리하면 앱에 바로 반영돼요. 같은 브라우저에서만 공유돼요 (데모)</span></div>
+ ${next?`<div class="card inv" style="flex-direction:row;align-items:center;gap:20px;flex-wrap:wrap"><div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:4px"><span class="m" style="font-size:12px;font-weight:500">다음 공연 ${next.ymd===today()?'(오늘)':''}</span><b style="font-size:22px">${esc(next.name)}</b><span style="font-size:13px">${next.date}(${next.dow}) ${next.start||'시작 시각 확인 필요'}, 입장 ${esc(oi.text)}${oi.est?' (예정)':''}, 출입문 ${esc(next.gate||'입력 필요')}, ${esc(next.template||'엔드 스테이지 A')}</span></div><a class="btn secondary" style="color:var(--tp)" href="#/shows" data-pick="shows" data-id="${next.id}">공연 정보 고치기</a></div>`:''}
+ <div class="grid g5">${q.map(([l,k,n,s])=>`<a class="card q" href="#/${k}" style="text-decoration:none"><span class="k">${l}</span><span class="v">${n}</span><span class="cap">${s}</span></a>`).join('')}</div>
+ <div class="grid g2">
+  <div class="card"><h2>데이터 연동 상태</h2><div class="tw"><table class="tbl"><tr><th>데이터</th><th>상태</th><th>메모</th></tr>${links.map(([a,b,m])=>`<tr><td>${a}</td><td><span class="tag ${b==='연동 예정'?'line':'on'}">${b}</span></td><td class="sm">${m}</td></tr>`).join('')}</table></div></div>
+  <div class="card"><h2>최근 처리 기록</h2><div>${d.logs.slice(0,8).map(l=>`<div class="log"><span class="t">${dt(l.at)}</span><span>${esc(l.what)}</span></div>`).join('')||'<div class="empty">아직 기록이 없어요</div>'}</div></div>
+ </div>`;}
+
+/* ---------- A-02 공연 관리 ---------- */
+function shows(){const d=D();const id=ui.sel.shows||B.SHOWS.find(s=>!s.done).id;const s=DB.show(id);const o=d.shows[id]||{};const oi=DB.openInfo(id);
+ return top('공연 관리','KOPIS 공연목록을 불러오고(연동 예정), 공지를 보고 입장 시각과 출입문을 입력해요')+`
+ <div class="tw"><table class="tbl"><tr><th>공연</th><th>날짜</th><th>시작</th><th>입장</th><th>출입문</th><th>무대</th><th>상태</th></tr>
+ ${B.SHOWS.map(x=>{const y=DB.show(x.id);const oo=DB.openInfo(x.id);return `<tr class="pick" data-pick="shows" data-id="${x.id}" aria-selected="${x.id===id}"><td><b>${esc(y.name)}</b>${y.real?'':' <span class="tag">예시</span>'}</td><td class="num">${y.date}(${y.dow})</td><td class="num">${y.start||'확인 필요'}</td><td class="num">${esc(oo.text)}${oo.est?' (예정)':''}</td><td>${esc(y.gate||'')}</td><td>${esc(y.template||'엔드 스테이지 A')}</td><td>${y.done?'<span class="tag line">종료</span>':y.gate?'<span class="tag">입력 완료</span>':'<span class="tag on">입력 필요</span>'}</td></tr>`;}).join('')}</table></div>
+ <div class="grid g2">
+  <div class="card"><h2>${esc(s.name)}</h2>
+   <dl class="kv"><dt>날짜</dt><dd>${s.date}(${s.dow}), ${esc(s.seller)}</dd><dt>시작, 종료</dt><dd>${s.start||'확인 필요'} ~ ${s.end||'확인 필요'}</dd><dt>지금 앱 표시</dt><dd>입장 ${esc(oi.text)}${oi.est?' (예정)':''}${oi.src?', '+esc(oi.src):''}</dd></dl>
+   <div class="grid g2" style="gap:12px">
+    <div class="field"><label for="s-open">입장 시작 시각</label><input id="s-open" class="input" type="time" value="${esc(o.open||'')}"></div>
+    <div class="field"><label for="s-gate">출입문</label><select id="s-gate" class="input"><option value="">공지 전</option>${B.GATES.map(g=>`<option ${o.gate===g?'selected':''}>${g}</option>`).join('')}</select></div>
+    <div class="field"><label for="s-tpl">무대 템플릿</label><select id="s-tpl" class="input">${B.TEMPLATES.map(g=>`<option ${(o.template||'엔드 스테이지 A')===g?'selected':''}>${g}</option>`).join('')}</select></div>
+    <div class="field"><label for="s-src">근거 (공지 출처나 링크)</label><input id="s-src" class="input" value="${esc(o.src||'')}" placeholder="예: 주최 측 공지 11/20"></div>
+   </div>
+   <div class="field"><label for="s-note">앱에 같이 보일 메모</label><input id="s-note" class="input" value="${esc(o.note||'')}" placeholder="예: 플로어는 F 출입문 전용"></div>
+   <div class="row"><button class="btn primary" data-a="saveShow" data-id="${id}">저장하고 앱에 반영</button>${Object.keys(o).length?`<button class="btn soft" data-a="clearShow" data-id="${id}">입력값 지우기</button>`:''}</div>
+   <span class="cap">입장 시각이 비어 있으면 앱에는 '공연 시작 1시간 30분 전 (예정)'으로 보여요. 근거 없이 시각을 넣지 마세요</span>
+  </div>
+  <div class="card soft"><h2>입력 기준</h2><span class="sm">입장 시각과 출입문은 주최 측, 예매처 공지에 나온 값만 넣어요<br>공지가 없으면 비워 두고 앱은 '확인 필요'나 '(예정)'으로 보여요<br>무대 템플릿에 따라 시야 3D와 구역 번호가 바뀌어요</span></div>
+ </div>`;}
+
+/* ---------- A-03 좌석 템플릿 ---------- */
+function seats(){const d=D();const used=t=>B.SHOWS.filter(s=>(DB.show(s.id).template||'엔드 스테이지 A')===t).length;
+ const blocks='ABCDEFGHIJKL'.split('');
+ const svg=`<svg viewBox="-60 -10 120 96" role="img" aria-label="엔드 스테이지 A 플로어 배치" style="width:100%;max-height:260px"><rect x="-26" y="-6" width="52" height="10" rx="2" fill="var(--inv)"/><text x="0" y="1" text-anchor="middle" font-size="5" fill="var(--on-inv)" font-family="var(--font)" font-weight="700">무대</text>${blocks.map((b,i)=>{const x=-25+(i%3)*17,y=10+Math.floor(i/3)*17;return `<rect x="${x}" y="${y}" width="15" height="15" rx="2" fill="var(--ph)"/><text x="${x+7.5}" y="${y+9.5}" text-anchor="middle" font-size="5" fill="var(--tp)" font-family="var(--font)" font-weight="700">${b}</text>`;}).join('')}<path d="M-56 4 A60 60 0 0 0 -40 80 M56 4 A60 60 0 0 1 40 80" stroke="var(--border)" stroke-width="6" fill="none"/></svg>`;
+ return top('좌석 템플릿','무대 형태별 구역 배치를 관리하고, 앱 티켓 입력에서 들어온 새 구역을 처리해요')+`
+ <div class="grid g2">
+  <div class="card"><h2>엔드 스테이지 A 미리보기</h2>${svg}<span class="cap">1~4층 각 20구역(101~420), 플로어 A~L. 구역 배치는 예시예요</span></div>
+  <div class="card"><h2>템플릿</h2><div class="tw"><table class="tbl"><tr><th>이름</th><th>쓰는 공연</th><th>상태</th></tr>${B.TEMPLATES.map((t,i)=>`<tr><td><b>${t}</b></td><td class="num">${used(t)}개</td><td>${i===0?'<span class="tag on">앱 3D 반영</span>':'<span class="tag line">모형 준비 중</span>'}</td></tr>`).join('')}</table></div></div>
+ </div>
+ <div class="card"><h2>신규 구역 후보</h2><span class="sm">관람객이 구조도에 없는 구역을 티켓에 입력하면 여기 쌓여요. 같은 구역이 여러 번 들어오면 실제 구역일 가능성이 높아요</span>
+ <div class="tw"><table class="tbl"><tr><th>구역</th><th>입력 횟수</th><th>처음 공연</th><th>마지막 입력</th><th>상태</th><th>처리</th></tr>
+ ${d.zoneCands.length?d.zoneCands.map(z=>`<tr><td><b>${esc(z.label)}</b></td><td class="num">${z.count}번</td><td>${esc(z.show?showName(z.show):'')}</td><td class="num">${dt(z.at)}</td><td><span class="tag ${z.status==='대기'?'on':''}">${esc(z.status)}${z.merged?' → '+esc(z.merged):''}</span></td><td>${z.status==='대기'?`<div class="row"><button class="btn s primary" data-a="zone" data-id="${z.id}" data-v="추가">템플릿에 추가</button><select class="input" id="zm-${z.id}" style="padding:5px 8px;font-size:12px" aria-label="합칠 구역">${blocks.map(b=>`<option>플로어 ${b}</option>`).join('')}</select><button class="btn s secondary" data-a="zone" data-id="${z.id}" data-v="합치기">합치기</button><button class="btn s soft" data-a="zone" data-id="${z.id}" data-v="반려">반려</button></div>`:''}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">새 구역 후보가 없어요</td></tr>'}</table></div>
+ <span class="cap">데모에서는 상태만 바뀌어요. 실제로는 추가한 구역이 다음 템플릿 버전의 구조도와 3D에 들어가요</span></div>`;}
+
+/* ---------- A-04 회원 인증 검수 ---------- */
+function verifs(){const d=D();const tab=ui.tab.verifs;const list=d.verifs.filter(v=>v.status===tab).sort((a,b)=>tab==='대기'?a.at-b.at:b.at-a.at);
+ const n=s=>d.verifs.filter(v=>v.status===s).length;
+ const id=list.some(v=>v.id===ui.sel.verifs)?ui.sel.verifs:(list[0]||{}).id;const v=d.verifs.find(x=>x.id===id);
+ const ck=ui.chk[id]||[false,false,false,false];const allOk=ck.every(Boolean);
+ return top('회원 인증 검수','결제 내역 캡처와 전화번호를 대조해 커뮤니티 인증 회원을 승인해요')+`
+ ${tabs('verifs',[['대기',`대기 ${n('대기')}`],['승인',`승인 ${n('승인')}`],['반려',`반려 ${n('반려')}`]])}
+ <div class="grid g2">
+  <div class="tw"><table class="tbl"><tr><th>신청자</th><th>공연</th><th>좌석</th><th>신청</th><th>캡처</th></tr>
+  ${list.length?list.map(x=>`<tr class="pick" data-pick="verifs" data-id="${x.id}" aria-selected="${x.id===id}"><td><b>${esc(x.nick)}</b></td><td>${esc(showName(x.show))}</td><td>${esc(x.seat)}</td><td class="num">${dt(x.at)}</td><td>${x.img?'<span class="tag on">있음</span>':'<span class="tag line">'+(x.status==='대기'?'예시':'지움')+'</span>'}</td></tr>`).join(''):`<tr><td colspan="5" class="empty">${tab} 신청이 없어요</td></tr>`}</table></div>
+  ${v?`<div class="card"><h2>${esc(v.nick)}님 신청</h2>
+   ${ph(v.status==='대기'?'예시 신청이라 캡처가 없어요':'처리 후 캡처를 지웠어요',220,v.img)}
+   <dl class="kv"><dt>공연</dt><dd>${esc(showName(v.show))}</dd><dt>좌석</dt><dd>${esc(v.seat)}</dd><dt>입력한 번호</dt><dd class="num">${v.status==='대기'?esc(v.phone||'없음'):esc(mask(v.phone))}</dd><dt>신청</dt><dd>${dt(v.at)}</dd>${v.doneAt?`<dt>처리</dt><dd>${dt(v.doneAt)}${v.reason?', '+esc(v.reason):''}</dd>`:''}</dl>
+   ${v.status==='대기'?`<span class="lab">확인 항목</span>
+   ${['캡처의 공연명이 신청한 공연과 같아요','캡처의 좌석이 신청한 좌석과 같아요','캡처의 예매자 번호와 입력한 번호가 같아요','결제 완료 상태예요 (취소 내역 아님)'].map((t,i)=>`<label class="check"><input type="checkbox" data-chk="${id}" data-i="${i}" ${ck[i]?'checked':''}>${t}</label>`).join('')}
+   <div class="row"><button class="btn primary" data-a="approve" data-id="${id}" ${allOk?'':'disabled'}>${ic('check',16)}승인</button>
+    <select id="v-reason" class="input" aria-label="반려 사유"><option>캡처가 흐려 확인할 수 없어요</option><option>공연명이 달라요</option><option>좌석이 달라요</option><option>전화번호가 달라요</option><option>취소된 결제 내역이에요</option></select>
+    <button class="btn secondary" data-a="reject" data-id="${id}">반려</button></div>
+   <span class="cap">승인이든 반려든 처리하면 캡처와 전화번호는 바로 지워지고 뒷자리 4개만 남아요. 신청자 계정에는 공연명과 결과만 남아요</span>`:''}
+  </div>`:'<div class="card"><div class="empty">왼쪽에서 신청을 고르세요</div></div>'}
+ </div>`;}
+
+/* ---------- A-05 시야 사진 검수 ---------- */
+function sights(){const d=D();const tab=ui.tab.sights;const sel={보류:HOLD,공개:s=>s.status==='공개',반려:s=>s.status==='반려'}[tab];
+ const list=d.sights.filter(sel).sort((a,b)=>b.at-a.at);const n=k=>d.sights.filter({보류:HOLD,공개:s=>s.status==='공개',반려:s=>s.status==='반려'}[k]).length;
+ const rc=id=>d.reports.filter(r=>r.tid===id).length;
+ return top('시야 사진 검수','시야 정보는 누구나 보고, 올린 사진은 AI가 먼저 확인해요. 걸린 것만 여기서 봐요')+`
+ <div class="row" style="justify-content:space-between">${tabs('sights',[['보류',`확인 필요 ${n('보류')}`],['공개',`공개 ${n('공개')}`],['반려',`반려 ${n('반려')}`]])}
+  <label class="check"><input type="checkbox" data-a="manual" ${d.settings.sightManual?'checked':''}>AI를 통과한 시야도 운영자 확인 후 공개</label></div>
+ <div class="grid g4">${list.length?list.map(s=>`<div class="card photo">
+   ${ph('사진 없음 (예시)',150,s.img)}
+   <div class="row"><b style="flex:1;min-width:0">${esc(s.seat)}</b><span class="tag ${HOLD(s)?'on':''}">${esc(s.status)}</span></div>
+   <span class="sm">${esc(s.nick)}, ${esc(showName(s.show))}, ${'★'.repeat(s.rating||0)}</span>
+   <span style="font-size:13px">${nl(s.t)}</span>
+   ${s.ai&&s.ai.flags.length?`<div class="chips">${s.ai.flags.map(f=>`<span class="tag line">${ic('alert',12)}${esc(f)}</span>`).join('')}</div>`:s.status==='AI 확인 중'?'<span class="cap">AI 확인이 끝나지 않았어요 (앱을 닫았을 수 있음)</span>':'<span class="cap">AI 걸린 점 없음</span>'}
+   ${rc(s.id)?`<span class="cap">신고 ${rc(s.id)}건</span>`:''}${s.reason?`<span class="cap">사유: ${esc(s.reason)}</span>`:''}
+   <div class="row">${s.status!=='공개'?`<button class="btn s primary" data-a="spub" data-id="${s.id}">공개</button>`:`<button class="btn s secondary" data-a="shide" data-id="${s.id}">숨기기</button>`}
+    ${s.status!=='반려'?`<select class="input" id="sr-${s.id}" style="padding:5px 8px;font-size:12px" aria-label="반려 사유"><option>무대가 안 보여요</option><option>사람 얼굴, 개인정보가 보여요</option><option>다른 좌석 사진이에요</option><option>공연 중 촬영이에요</option></select><button class="btn s soft" data-a="srej" data-id="${s.id}">반려</button>`:''}</div>
+  </div>`).join(''):'<div class="card" style="grid-column:1/-1"><div class="empty">이 분류에 사진이 없어요</div></div>'}</div>
+ <div class="card soft"><h2>검수 기준</h2><span class="sm">시야 정보는 가입하지 않아도 누구나 봐요 (전체 공개)<br>공연 중 촬영, 사람 얼굴, 다른 좌석 사진은 반려해요<br>AI가 보는 것: 사진 밝기, 단색 사진, 글의 금칙어와 연락처. 신고 3건이면 자동으로 숨겨요</span></div>`;}
+
+/* ---------- A-06 신고 처리 ---------- */
+function reports(){const d=D();const tab=ui.tab.reports;const list=d.reports.filter(r=>tab==='접수'?r.status==='접수':r.status!=='접수').sort((a,b)=>tab==='접수'?a.at-b.at:b.at-a.at);
+ const id=list.some(r=>r.id===ui.sel.reports)?ui.sel.reports:(list[0]||{}).id;const r=d.reports.find(x=>x.id===id);const t=r?target(r):null;
+ const due=x=>{const left=Math.ceil((x.at+30*864e5-Date.now())/864e5);return left<=0?'기한 지남':`D-${left}`;};
+ const sum=x=>{const y=target(x);return y?(x.type==='post'?y.title:y.t):'지워진 글';};
+ return top('신고 처리','신고와 AI 자동 감지를 30일 안에 처리해요')+`
+ ${tabs('reports',[['접수',`접수 ${d.reports.filter(x=>x.status==='접수').length}`],['완료',`처리 완료 ${d.reports.filter(x=>x.status!=='접수').length}`]])}
+ <div class="grid g2">
+  <div class="tw"><table class="tbl"><tr><th>대상</th><th>내용</th><th>사유</th><th>신고</th><th>${tab==='접수'?'기한':'결과'}</th></tr>
+  ${list.length?list.map(x=>`<tr class="pick" data-pick="reports" data-id="${x.id}" aria-selected="${x.id===id}"><td>${x.type==='post'?'글':'시야'}</td><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sum(x))}</td><td>${esc(x.reason)}</td><td>${esc(x.by)}</td><td class="num">${tab==='접수'?due(x):esc(x.status)}</td></tr>`).join(''):`<tr><td colspan="5" class="empty">${tab==='접수'?'처리할 신고가 없어요':'처리한 신고가 없어요'}</td></tr>`}</table></div>
+  ${r?`<div class="card"><h2>${r.type==='post'?'글':'시야'} 신고</h2>
+   ${t?`<div class="card soft" style="gap:6px">${r.type==='post'?`<span class="row"><span class="tag">${esc(t.board)}</span>${t.vis==='인증 회원'?'<span class="tag line">인증 회원 공개</span>':''}<span class="tag ${t.status==='공개'?'':'on'}">지금 ${esc(t.status)}</span></span><b>${esc(t.title)}</b><span style="font-size:13px">${nl(t.body)}</span>`:`${t.img?ph('',140,t.img):''}<b>${esc(t.seat)}</b><span style="font-size:13px">${nl(t.t)}</span><span class="tag ${t.status==='공개'?'':'on'}" style="align-self:flex-start">지금 ${esc(t.status)}</span>`}<span class="cap">작성자 ${esc(t.nick)}, ${dt(t.at)}</span></div>`:'<span class="sm">대상이 지워졌어요</span>'}
+   <dl class="kv"><dt>사유</dt><dd>${esc(r.reason)}</dd><dt>신고</dt><dd>${esc(r.by)}, ${dt(r.at)}</dd><dt>같은 대상 신고</dt><dd>${d.reports.filter(x=>x.tid===r.tid).length}건</dd>${t&&t.flags&&t.flags.length?`<dt>자동 감지</dt><dd>${esc(t.flags.join(', '))}</dd>`:''}</dl>
+   ${r.status==='접수'&&t?`<div class="row"><button class="btn secondary" data-a="rkeep" data-id="${r.id}">유지 (다시 공개)</button><button class="btn primary" data-a="rhold" data-id="${r.id}">임시조치</button><button class="btn soft" data-a="rdel" data-id="${r.id}">삭제</button></div>
+   <label class="check"><input type="checkbox" id="r-notify" checked>신고자와 작성자에게 처리 결과 알리기</label>
+   <span class="cap">같은 대상의 접수된 신고가 한 번에 처리돼요. 임시조치는 작성자에게만 보이고, 삭제는 앱에서 사라져요. 법적 판단이 필요하면 원문 확인 필요로 남겨요</span>`:r.status!=='접수'?`<span class="tag" style="align-self:flex-start">처리: ${esc(r.status)}${r.doneAt?', '+dt(r.doneAt):''}</span>`:''}
+  </div>`:'<div class="card"><div class="empty">왼쪽에서 신고를 고르세요</div></div>'}
+ </div>`;}
+
+/* ---------- A-07 장소 정보 관리 ---------- */
+function places(){const d=D();const tab=ui.tab.places;const wait=d.infos.filter(x=>x.status==='대기').length;
+ let body='';
+ if(tab==='주차장'){body=`<div class="tw"><table class="tbl"><tr><th>주차장</th><th>면수와 조건</th><th>요금</th><th>메모 (앱에 같이 보임)</th><th>수정</th><th></th></tr>
+  ${B.LOTS.map((l,i)=>{const o=d.lots[i]||{};const c=DB.lot(i);return `<tr><td><b>${esc(l.n)}</b></td><td><input class="input" id="l-d-${i}" value="${esc(c.d)}"></td><td><input class="input" id="l-f-${i}" value="${esc(c.f)}" style="min-width:110px"></td><td><input class="input" id="l-n-${i}" value="${esc(c.note||'')}" placeholder="예: 공연일 18시 이후 만차"></td><td class="cap">${o.at?dt(o.at):'원래 값'}</td><td><div class="row"><button class="btn s primary" data-a="lot" data-i="${i}">저장</button>${o.at?`<button class="btn s soft" data-a="lotReset" data-i="${i}">원래 값</button>`:''}</div></td></tr>`;}).join('')}</table></div>
+  <span class="cap">원래 값 출처: 서울시설공단 고척스카이돔 주차 안내. 고친 값은 이용자 제보를 현장이나 공지로 확인한 뒤에만 넣어요</span>`;}
+ else if(tab==='제보'){const list=[...d.infos].sort((a,b)=>(a.status==='대기'?0:1)-(b.status==='대기'?0:1)||b.at-a.at);
+  body=`<div class="tw"><table class="tbl"><tr><th>분류</th><th>대상</th><th>내용</th><th>제보</th><th>상태</th><th>처리</th></tr>
+  ${list.length?list.map(x=>`<tr><td><span class="tag">${esc(x.kind)}</span></td><td><b>${esc(x.target)}</b></td><td style="min-width:220px">${esc(x.text)}${x.reply?`<div class="cap">답변: ${esc(x.reply)}</div>`:''}</td><td class="sm">${esc(x.by)}, ${dt(x.at)}</td><td><span class="tag ${x.status==='대기'?'on':''}">${esc(x.status)}</span></td><td>${x.status==='대기'?`<div class="row"><input class="input" id="ir-${x.id}" placeholder="답변 (선택)" style="min-width:140px;padding:6px 10px;font-size:12px"><button class="btn s primary" data-a="info" data-id="${x.id}" data-v="반영">반영</button><button class="btn s soft" data-a="info" data-id="${x.id}" data-v="반려">반려</button></div>`:''}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">제보가 없어요</td></tr>'}</table></div>
+  <span class="cap">주차 제보를 반영하면 '주차장' 분류에서 값을 고쳐 주세요. 답변은 제보한 사람의 마이페이지에 보여요</span>`;}
+ else{body=`<div class="tw"><table class="tbl"><tr><th>항목</th><th>지금 값</th><th>출처</th><th>위치</th></tr>
+  <tr><td>출입문</td><td>A, B (홈), D, E (3루 쪽), F, G (외야)</td><td>서울시설공단 시설현황</td><td>3D 위치는 예시</td></tr>
+  <tr><td>매점</td><td>2층, 3층, 4층</td><td>서울시설공단 시설현황</td><td>3D 위치는 예시</td></tr>
+  <tr><td>아기쉼터</td><td>2층, 3층</td><td>서울시설공단 시설현황</td><td>3D 위치는 예시</td></tr>
+  <tr><td>노약자, 장애인 엘리베이터</td><td>있음</td><td>서울시설공단 시설현황</td><td>3D 위치는 예시</td></tr>
+  <tr><td>매표소</td><td>외야 2곳, 내야 1곳</td><td>서울시설공단 시설현황</td><td>확인 필요</td></tr></table></div>
+  <span class="cap">정확한 위치는 배치도에 없어요. 현장 확인이나 공단 자료로 위치를 받으면 3D 표시를 고쳐요 (다음 단계)</span>`;}
+ return top('장소 정보 관리','주차, 시설 값을 고치고 이용자 제보를 처리해요. 고치면 앱 공연장 탭과 이동 탭에 바로 반영돼요')+
+  tabs('places',[['주차장','주차장'],['제보',`이용자 제보 ${wait}`],['시설','시설, 출입문']])+body;}
+
+/* ---------- A-08 통계와 설정 ---------- */
+function stats(){const d=D();
+ const st=[['인증 회원 승인',d.verifs.filter(v=>v.status==='승인').length],['공개된 시야',d.sights.filter(s=>s.status==='공개').length],['처리한 신고',d.reports.filter(r=>r.status!=='접수').length],['반영한 제보',d.infos.filter(x=>x.status==='반영').length]];
+ const days=[...Array(7)].map((_,i)=>{const t=new Date();t.setHours(0,0,0,0);t.setDate(t.getDate()-6+i);return t;});
+ const all=[...d.verifs,...d.sights,...d.posts,...d.reports,...d.infos];
+ const cnt=days.map(t=>all.filter(x=>x.at>=+t&&x.at<+t+864e5).length);const mx=Math.max(1,...cnt);
+ return top('통계와 설정','처리 현황, 금칙어, 공지를 관리해요')+`
+ <div class="grid g4">${st.map(([k,v])=>`<div class="card q"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div>
+ <div class="grid g2">
+  <div class="card"><h2>최근 7일 접수 (신청, 글, 시야, 신고, 제보)</h2><div class="bars">${days.map((t,i)=>`<div><span class="num">${cnt[i]}</span><i style="height:${Math.round(cnt[i]/mx*100)}%"></i><span>${t.getMonth()+1}/${t.getDate()}</span></div>`).join('')}</div></div>
+  <div class="card"><h2>공지</h2>
+   ${d.notices.map(n=>`<div class="row" style="padding:8px 0;border-top:1px solid var(--border)"><span style="flex:1;min-width:0">${esc(n.title)}</span><label class="check"><input type="checkbox" data-a="notice" data-id="${n.id}" ${n.on?'checked':''}>앱 홈에 보이기</label><button class="btn s soft" data-a="noticeDel" data-id="${n.id}">지우기</button></div>`).join('')||'<span class="sm">공지가 없어요</span>'}
+   <div class="row"><input id="n-title" class="input" style="flex:1" maxlength="60" placeholder="새 공지 한 줄"><button class="btn primary" data-a="noticeAdd">올리기</button></div>
+  </div>
+ </div>
+ <div class="grid g2">
+  <div class="card"><h2>금칙어</h2><span class="sm">글이나 시야 후기에 들어 있으면 '검토 중'으로 보내고 신고 처리에 올려요. 전화번호는 자동으로 가려요</span>
+   <div class="chips">${d.words.map(w=>`<span class="tag">${esc(w)}<button data-a="wordDel" data-w="${esc(w)}" aria-label="${esc(w)} 지우기">${ic('x',12)}</button></span>`).join('')}</div>
+   <div class="row"><input id="w-new" class="input" style="flex:1" maxlength="20" placeholder="추가할 말"><button class="btn secondary" data-a="wordAdd">추가</button></div></div>
+  <div class="card"><h2>데모 데이터</h2><span class="sm">이 브라우저의 신청, 글, 신고, 운영자 입력을 처음 예시 상태로 되돌려요. 앱의 가입 정보와 내 티켓은 그대로예요</span>
+   <div class="row"><button class="btn ${ui.resetArm?'primary':'secondary'}" data-a="reset">${ui.resetArm?'한 번 더 누르면 되돌려요':'처음 상태로 되돌리기'}</button><a class="btn soft" href="index.html" target="_blank" rel="noopener">${ic('ext',16)}앱 화면 열기</a></div></div>
+ </div>`;}
+
+const VIEWS={dash,shows,seats,verifs,sights,reports,places,stats};
+function render(){const p=page();document.getElementById('side').innerHTML=side();document.getElementById('main').innerHTML=VIEWS[p]();
+ const c=counts();const total=c.verifs+c.sights+c.reports+c.places+c.seats;document.title=(total?`(${total}) `:'')+'운영자 관리';}
+
+const val=id=>(document.getElementById(id)||{}).value||'';
+function act(a,ds){
+ const now=Date.now();
+ switch(a){
+  case 'saveShow':{const id=ds.id;const o={open:val('s-open'),gate:val('s-gate'),template:val('s-tpl'),src:val('s-src').trim(),note:val('s-note').trim(),at:now};
+   if(o.open&&!o.src){toast('입장 시각을 넣을 때는 근거도 적어 주세요');return;}
+   Object.keys(o).forEach(k=>{if(o[k]==='')delete o[k];});DB.set(d=>{d.shows[id]=o;DB.log(`공연 정보 수정: ${showName(id)}${o.open?', 입장 '+o.open:''}${o.gate?', 출입문 '+o.gate:''}`);});toast('저장했어요. 앱 홈과 공연장 탭에 반영돼요');break;}
+  case 'clearShow':DB.set(d=>{delete d.shows[ds.id];DB.log(`공연 정보 입력값 지움: ${showName(ds.id)}`);});toast('입력값을 지웠어요');break;
+  case 'zone':{const v=ds.v;const m=v==='합치기'?val('zm-'+ds.id):null;DB.set(d=>{const z=d.zoneCands.find(x=>x.id===ds.id);if(!z)return;z.status=v==='추가'?'추가 예정':v==='합치기'?'합침':'반려';if(m)z.merged=m;DB.log(`신규 구역 ${v}: ${z.label}${m?' → '+m:''}`);});toast(`${v} 처리했어요`);break;}
+  case 'approve':case 'reject':{const reason=a==='reject'?val('v-reason'):null;DB.set(d=>{const v=d.verifs.find(x=>x.id===ds.id);if(!v)return;v.status=a==='approve'?'승인':'반려';v.reason=reason;v.doneAt=now;v.img=null;v.phone=mask(v.phone);DB.log(`회원 인증 ${v.status}: ${v.nick}, ${showName(v.show)}${reason?' ('+reason+')':''}`);});delete ui.chk[ds.id];ui.sel.verifs=null;toast(a==='approve'?'승인했어요. 캡처와 전화번호를 지웠어요':'반려했어요. 캡처와 전화번호를 지웠어요');break;}
+  case 'spub':DB.set(d=>{const s=d.sights.find(x=>x.id===ds.id);if(!s)return;s.status='공개';s.reason=null;d.reports.filter(r=>r.tid===s.id&&r.status==='접수').forEach(r=>{r.status='유지';r.doneAt=now;});DB.log(`시야 공개: ${s.seat}`);});toast('공개했어요. 앱 시야 탭에 바로 보여요');break;
+  case 'shide':DB.set(d=>{const s=d.sights.find(x=>x.id===ds.id);if(!s)return;s.status='숨김';DB.log(`시야 숨김: ${s.seat}`);});toast('숨겼어요');break;
+  case 'srej':{const reason=val('sr-'+ds.id);DB.set(d=>{const s=d.sights.find(x=>x.id===ds.id);if(!s)return;s.status='반려';s.reason=reason;d.reports.filter(r=>r.tid===s.id&&r.status==='접수').forEach(r=>{r.status='삭제';r.doneAt=now;});DB.log(`시야 반려: ${s.seat} (${reason})`);});toast('반려했어요. 올린 사람에게 사유가 보여요');break;}
+  case 'manual':DB.set(d=>{d.settings.sightManual=!d.settings.sightManual;DB.log(`설정: AI 통과 시야 ${d.settings.sightManual?'운영자 확인 후 공개':'바로 공개'}`);});break;
+  case 'rkeep':case 'rhold':case 'rdel':{const res={rkeep:'유지',rhold:'임시조치',rdel:'삭제'}[a];const notify=(document.getElementById('r-notify')||{}).checked;
+   DB.set(d=>{const r=d.reports.find(x=>x.id===ds.id);if(!r)return;const t=r.type==='post'?d.posts.find(p=>p.id===r.tid):d.sights.find(s=>s.id===r.tid);
+    if(t)t.status=res==='유지'?'공개':res==='삭제'?(r.type==='post'?'삭제':'반려'):(r.type==='post'?'임시조치':'숨김');
+    d.reports.filter(x=>x.tid===r.tid&&x.status==='접수').forEach(x=>{x.status=res;x.doneAt=now;});
+    DB.log(`신고 ${res}: ${t?(r.type==='post'?t.title:t.seat):'지워진 대상'}${notify?', 결과 알림':''}`);});ui.sel.reports=null;toast(`${res} 처리했어요`);break;}
+  case 'lot':{const i=+ds.i;const o={d:val('l-d-'+i).trim(),f:val('l-f-'+i).trim(),note:val('l-n-'+i).trim(),at:now};const b=B.LOTS[i];
+   DB.set(d=>{const x={at:now};if(o.d&&o.d!==b.d)x.d=o.d;if(o.f&&o.f!==b.f)x.f=o.f;if(o.note)x.note=o.note;if(Object.keys(x).length>1)d.lots[i]=x;else delete d.lots[i];DB.log(`주차장 정보 수정: ${b.n}`);});toast('저장했어요. 앱 주차 정보에 반영돼요');break;}
+  case 'lotReset':DB.set(d=>{delete d.lots[+ds.i];DB.log(`주차장 정보 원래 값: ${B.LOTS[+ds.i].n}`);});toast('원래 값으로 되돌렸어요');break;
+  case 'info':{const reply=val('ir-'+ds.id).trim();DB.set(d=>{const x=d.infos.find(y=>y.id===ds.id);if(!x)return;x.status=ds.v;x.reply=reply||(ds.v==='반영'?'확인해서 고쳤어요':'확인했지만 지금 정보와 같아요');x.doneAt=now;DB.log(`장소 제보 ${ds.v}: ${x.kind}, ${x.target}`);});
+   if(ds.v==='반영'){const x=D().infos.find(y=>y.id===ds.id);if(x&&x.kind==='주차'){ui.tab.places='주차장';toast('반영했어요. 주차장 값을 고쳐 주세요');break;}}toast(`${ds.v} 처리했어요`);break;}
+  case 'notice':DB.set(d=>{const n=d.notices.find(x=>x.id===ds.id);if(n)n.on=!n.on;});break;
+  case 'noticeDel':DB.set(d=>{d.notices=d.notices.filter(x=>x.id!==ds.id);DB.log('공지 지움');});break;
+  case 'noticeAdd':{const t=val('n-title').trim();if(!t){toast('공지 내용을 적어 주세요');return;}DB.set(d=>{d.notices.unshift({id:DB.id('n'),title:t,at:now,on:true});DB.log(`공지 올림: ${t}`);});toast('올렸어요. 앱 홈 맨 위에 보여요');break;}
+  case 'wordAdd':{const w=val('w-new').trim();if(!w)return;DB.set(d=>{if(!d.words.includes(w))d.words.push(w);DB.log(`금칙어 추가: ${w}`);});break;}
+  case 'wordDel':DB.set(d=>{d.words=d.words.filter(x=>x!==ds.w);DB.log(`금칙어 지움: ${ds.w}`);});break;
+  case 'reset':if(!ui.resetArm){ui.resetArm=true;render();setTimeout(()=>{ui.resetArm=false;if(page()==='stats')render();},4000);return;}ui.resetArm=false;DB.reset();ui.sel={};ui.chk={};toast('처음 예시 상태로 되돌렸어요');break;
+ }
+ render();
+}
+document.addEventListener('click',e=>{
+ const pk=e.target.closest('[data-pick]');if(pk){ui.sel[pk.dataset.pick]=pk.dataset.id;if(pk.tagName==='A'){/* 링크는 해시 이동 후 다시 그림 */}else render();return;}
+ const tb=e.target.closest('[data-tab]');if(tb){ui.tab[tb.dataset.tab]=tb.dataset.v;render();return;}
+ const ch=e.target.closest('[data-chk]');if(ch){const id=ch.dataset.chk;const l=ui.chk[id]||(ui.chk[id]=[false,false,false,false]);l[+ch.dataset.i]=ch.checked;render();return;}
+ const b=e.target.closest('[data-a]');if(b){if(b.tagName==='BUTTON'||b.type==='checkbox'){act(b.dataset.a,b.dataset);}}
+});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const id=e.target.id;if(id==='n-title')act('noticeAdd',{});if(id==='w-new')act('wordAdd',{});});
+window.addEventListener('hashchange',()=>{render();window.scrollTo(0,0);});
+/* 앱 탭에서 신청, 신고가 들어오면 바로 다시 그림 (입력 중이면 기다림) */
+DB.on(()=>{const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.type!=='checkbox')return;render();});
+render();
+})();
+</script>
+</body>
+</html>
