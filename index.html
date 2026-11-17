@@ -208,6 +208,7 @@ textarea.input{min-height:110px;resize:vertical}
 .stars{display:flex;gap:4px}
 .stars button{font-size:26px;line-height:1;color:var(--ph);padding:2px}
 .stars button[aria-pressed="true"]{color:var(--tp)}
+.bm svg{fill:none}.bm[aria-pressed="true"] svg{fill:currentColor}
 .status{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--ph)}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
 .kv dt{color:var(--ts)}
@@ -228,6 +229,8 @@ const ICONS={
  'chevron-left':'<path d="m15 18-6-6 6-6"/>','chevron-right':'<path d="m9 18 6-6-6-6"/>','chevron-down':'<path d="m6 9 6 6 6-6"/>',
  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
  'wifi-off':'<path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2.01-1.52"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/>',
+ bookmark:'<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+ lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
  ticket:'<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/>',
  image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
@@ -310,9 +313,16 @@ const LOTS=[ /* 출처: 서울시설공단 고척스카이돔 주차 안내 */
 let SHOPDATA=null;
 const SHOP_CATS=['편의점','식당','카페','약국'];
 const SEED_POSTS=[
- {seat:'3층 312구역 F열',t:'돌출 무대까지 잘 보여요',n:'[닉네임]'},
- {seat:'플로어 B구역',t:'앞사람 휴대폰에 가려질 때가 있어요',n:'[닉네임]'},
- {seat:'2층 205구역 C열',t:'음향이 가장 깔끔했어요',n:'[닉네임]'}
+ {id:'v1',seat:'3층 312구역 F열',t:'돌출 무대까지 잘 보여요',n:'[닉네임]'},
+ {id:'v2',seat:'플로어 B구역',t:'앞사람 휴대폰에 가려질 때가 있어요',n:'[닉네임]'},
+ {id:'v3',seat:'2층 205구역 C열',t:'음향이 가장 깔끔했어요',n:'[닉네임]'}
+];
+/* 커뮤니티 예시 글 (동행, 공연 정보). vis: 'all' 전체 공개, 'cert' 인증 회원만 보기. cert: 쓴 사람이 인증 회원인지 */
+const COMM_SEED=[
+ {id:'c1',tab:'동행',title:'공연 끝나고 구로역까지 같이 걸어가실 분',body:'정문 앞에서 만나 같이 걸어가요. 앱 메시지로 연락 주세요',n:'[닉네임]',cert:true,vis:'cert',at:'11/14'},
+ {id:'c2',tab:'동행',title:'입장 전 MD 줄 같이 서실 분',body:'오후 2시쯤 도착 예정이에요. 한 명씩 번갈아 자리 맡아요',n:'[닉네임]',cert:true,vis:'all',at:'11/13'},
+ {id:'c3',tab:'공연 정보',title:'3층 매점 줄이 짧았어요',body:'2층보다 덜 붐벼요. 입장 직후가 가장 한산했어요',n:'[닉네임]',cert:false,vis:'all',at:'11/14'},
+ {id:'c4',tab:'공연 정보',title:'퇴장 때 구일역 2번 출구 통제해요',body:'지난 공연 때 20분 정도 줄 섰어요. 개봉역 쪽이 빨랐어요',n:'[닉네임]',cert:true,vis:'cert',at:'11/14'}
 ];
 
 /* ---------- 공연장 3D 모형 (Three.js, 예시 치수) ---------- */
@@ -766,10 +776,12 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
 
 /* ---------- state ---------- */
 const KEY='gocheok-app-v1';
-let S={nick:'',joined:false,ticket:null,venue:'gocheok',posts:[],alarm:false};
+let S={nick:'',joined:false,ticket:null,venue:'gocheok',posts:[],alarm:false,certs:[],bm:[],cposts:[]};
 try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(S,JSON.parse(raw));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){try{localStorage.setItem(KEY,JSON.stringify({...S,posts:S.posts.map(p=>({...p,img:null}))}));}catch(e2){}}};
 S.posts=(S.posts||[]).map(p=>Object.assign({status:'공개',venue:'gocheok',sec:p.sec||p.zone},p,p.status==='검수 중'?{status:'공개'}:{}));
+/* 예전 저장본: 인증된 티켓이 있는데 인증 내역이 없으면 내역을 하나 만든다 */
+if(S.ticket&&S.ticket.verified&&!(S.certs||[]).length)S.certs=[{show:S.ticket.show,seat:`${S.ticket.floor} ${S.ticket.zone}구역 ${S.ticket.row}열 ${S.ticket.no}번`,at:null,how:'예매 캡처'}];
 let stack=[S.joined?'home':'start'];
 let ui={mset:'전체',mfocus:'guil',mapKinds:null,mapTitle:'',sec:null,floor:3,vmode:'3d',hgt:165,f3:0,rating:0,consent:false,_mount:null,zone:'312',stand:'앞쪽',vtab:'입장',ctab:'시야 후기',sel:'A',img:null,tags:new Set(['무대 정면']),agree:[true,true,true,false],q:'',reviewImg:null,me:null,locBusy:false,locErr:'',scat:'전체',slim:20,ocat:'전체'};
 
@@ -812,6 +824,19 @@ const nl=s=>esc(s).replace(/\n/g,'<br>');
 const addMin=(hm,m)=>{const [h,mm]=hm.split(':').map(Number);const t=h*60+mm+m;return `${String(Math.floor(t/60)%24).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;};
 function setFocus(id){ui.mfocus=id;const box=document.getElementById('mfocus');if(box)box.innerHTML=focusHTML(placeById(id));document.querySelectorAll('[data-mfocus].row').forEach(r=>{const on=r.dataset.mfocus===id;r.style.background=on?'var(--card)':'';r.style.border=on?'1px solid var(--bstrong)':'';});}
 const seatText=t=>`${t.floor} ${t.zone}구역 ${t.row}열 ${t.no}번`;
+/* 회원제: 가입한 회원은 모두 일반 회원, 티켓을 인증한 적이 있으면 인증 회원 (인증 내역은 계정에 남음).
+   인증 회원만: 동행 구하기, 글 공개 범위 지정(인증 회원만 보기), 내 좌석 시야 등록(선택). 시야 보기는 모두에게 공개 */
+const isCert=()=>(S.certs||[]).length>0;
+const canSee=p=>p.vis!=='cert'||isCert();
+const isBm=id=>(S.bm||[]).includes(id);
+const bmBtn=id=>`<button class="ibtn bm" data-bm="${id}" aria-pressed="${isBm(id)}" aria-label="${isBm(id)?'북마크 해제':'북마크'}">${ic('bookmark',20)}</button>`;
+const allComm=()=>[...(S.cposts||[]),...COMM_SEED];
+const allReviews=()=>[...S.posts.filter(p=>p.status==='공개'||!p.status).map(p=>({id:'p'+p.id,seat:p.seat,t:String(p.t),n:S.nick||'나',img:p.img})),...SEED_POSTS];
+const rRow=p=>`<div class="row" style="padding:12px"><span class="thumb">${p.img?`<img src="${p.img}" alt="">`:ic('image',22)}</span><span class="grow" style="gap:3px"><b style="font-size:13px">${esc(p.seat)}</b><span style="font-size:13px">${esc(p.t.split('\n')[0])}</span><span class="t-cap" style="color:var(--tp)">${esc(p.n)}, 인증 회원</span></span>${bmBtn(p.id)}</div>`;
+const cRow=p=>canSee(p)?`<div class="row" style="padding:12px;align-items:flex-start"><span class="grow" style="gap:3px"><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${p.vis==='cert'?'<span class="status">인증 회원만</span>':''}<b style="font-size:14px">${esc(p.title)}</b></span>${p.body?`<span style="font-size:13px">${esc(p.body)}</span>`:''}<span class="t-cap">${esc(p.tab)}, ${esc(p.n)}, ${p.cert?'인증 회원':'일반 회원'}, ${esc(p.at)}</span></span>${bmBtn(p.id)}</div>`
+ :`<div class="row" style="padding:12px">${ic('lock',20)}<span class="grow"><b style="font-size:14px">인증 회원만 볼 수 있는 글이에요</b><span class="t-cap">티켓을 인증하면 볼 수 있어요</span></span></div>`;
+const maskContact=t=>t.replace(/01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/g,'[연락처 가림]').replace(/[\w.+-]+@[\w-]+\.[\w.]+/g,'[연락처 가림]');
+const fmtAt=iso=>{if(!iso)return '이전 기록';const d=new Date(iso);return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;};
 
 /* ---------- screens ---------- */
 const SCREENS={
@@ -823,7 +848,7 @@ start:()=>`<div class="body" style="padding-top:60px;gap:16px">
   <div class="spacer"></div>
   <button class="btn primary" data-go="signup">카카오로 시작하기</button>
   <button class="btn secondary" data-go="signup">이메일로 시작하기</button>
-  <button class="link-c" data-act="browse">먼저 둘러보기</button>
+  <span class="t-cap" style="text-align:center">가입한 회원만 이용할 수 있어요. 티켓 인증은 가입 뒤 원하는 분만 해요</span>
  </div>`,
 
 signup:()=>{const all=ui.agree.every(Boolean);const ok=ui.agree[0]&&ui.agree[1]&&/^.{2,10}$/.test(S.nick.trim());
@@ -886,19 +911,22 @@ ticket:()=>{
  const d=S._draft||{floor:'3층',zone:'312',row:'F',no:'14'};
  return hdr('내 티켓 등록',{backBtn:true})+`<div class="body" style="gap:12px">
   <div class="step"><span class="badge">1</span>공연 선택</div>
-  ${SHOWS.filter(s=>!s.done).map(s=>`<button class="opt" role="radio" aria-checked="${ui.sel===s.id}" data-sel="${s.id}"><span class="grow" style="flex:1;display:flex;flex-direction:column"><b style="font-size:15px">${esc(s.name)}</b><span class="t-sm">${s.date}(${s.dow}) ${s.start}</span></span>${ic('check',20)}</button>`).join('')}
+  ${SHOWS.filter(s=>!s.done).map(s=>`<button class="opt" role="radio" aria-checked="${ui.sel===s.id}" data-sel="${s.id}"><span class="grow" style="flex:1;display:flex;flex-direction:column"><b style="font-size:15px">${esc(s.name)}</b><span class="t-sm">${s.date}(${s.dow}) ${s.start||'시간 확인 필요'}</span></span>${ic('check',20)}</button>`).join('')}
   <div class="step"><span class="badge">2</span>예매 내역 캡처</div>
   <label class="ph" style="height:110px;cursor:pointer" for="cap">${ui.img?`<img src="${ui.img}" alt="올린 예매 캡처">`:`${ic('image',28)}<span>캡처 이미지 올리기</span>`}</label>
   <input id="cap" type="file" accept="image/*" hidden>
-  <div class="step"><span class="badge">3</span>좌석 정보</div>
+  <span class="t-cap">캡처 속 글자를 읽어 공연과 좌석을 자동으로 채우는 기능은 확장 예정이에요</span>
+  <div class="step"><span class="badge">3</span>예매자 전화번호</div>
+  <div class="field"><label for="f-phone">예매 내역의 번호와 대조해요</label><input id="f-phone" class="input" type="tel" inputmode="numeric" autocomplete="off" placeholder="010-0000-0000" maxlength="13" value="${esc(ui.phone||'')}"></div>
+  <div class="step"><span class="badge">4</span>좌석 정보</div>
   <div style="display:flex;gap:8px">
    <div class="field"><label for="f-floor">층</label><input id="f-floor" class="input" value="${esc(d.floor)}"></div>
    <div class="field"><label for="f-zone">구역</label><input id="f-zone" class="input" inputmode="numeric" value="${esc(d.zone)}"></div>
    <div class="field"><label for="f-row">열</label><input id="f-row" class="input" value="${esc(d.row)}"></div>
    <div class="field"><label for="f-no">번호</label><input id="f-no" class="input" inputmode="numeric" value="${esc(d.no)}"></div>
   </div>
-  <div class="card" style="padding:14px"><span class="t-sm">캡처의 공연명과 좌석이 맞으면 인증 표시가<br>붙고, 그 좌석의 후기를 쓸 수 있어요</span></div>
-  ${ui.img?'':'<span class="err">캡처 없이 등록하면 \'인증 대기\'로 표시되고, 캡처를 올리면 인증돼요</span>'}
+  <div class="card" style="padding:14px;gap:4px"><span class="t-sm">캡처의 공연명, 좌석과 전화번호가 예매 내역과 맞으면 인증 회원이 돼요. 인증은 선택이고, 인증하면 동행 구하기, 글 공개 범위 지정, 내 좌석 시야 등록을 쓸 수 있어요</span><span class="t-cap">대조가 끝나면 캡처와 전화번호는 바로 지우고 인증 여부와 일시만 남겨요 (데모라 실제 대조는 하지 않아요)</span></div>
+  ${ui.img?'':'<span class="err">캡처 없이 등록하면 \'인증 대기\'로 표시돼요. 공연 정보 확인용으로는 그대로 쓸 수 있어요</span>'}
   <div class="spacer"></div>
   <button class="btn primary" data-act="register">등록하기</button>
  </div>`;},
@@ -932,7 +960,7 @@ sight:()=>{const sh=show();const hall=standing();const vkey=S.venue;
   ${sel?`<div class="card line" style="gap:10px"><span style="display:flex;align-items:center;gap:8px"><b style="font-size:16px;flex:1">${esc(secLabel(sel))}</b><span class="t-sm">후기 ${cnt(sel)}개</span></span>${tags(secTags(sel))}<span class="t-sm">무대까지 약 ${stageDist(vkey,sel)}m (모형 기준)</span><button class="btn primary" data-act="view" data-s="${esc(sel)}">${ic('eye',18)}&nbsp;이 자리에서 무대 보기</button></div>`
    :`<div class="card"><span class="t-sm">구조도에서 ${hall?'구역':'구역'}을 누르면 그 자리에서 본 무대를 3D로 볼 수 있어요</span></div>`}
   ${my&&!hall?row('내 좌석 바로 보기',S.ticket.floor+' '+S.ticket.zone+'구역 '+S.ticket.row+'열','ticket','myseat'):''}
-  ${hall?'':row('내 좌석 시야 등록하기',S.ticket&&S.ticket.verified?'인증된 티켓으로 사진과 평가 올리기':'티켓을 인증한 관람객만 올릴 수 있어요','image','upload')}
+  ${hall?'':row('내 좌석 시야 등록하기',S.ticket&&S.ticket.verified?'선택, 인증된 티켓의 내 좌석 사진과 평가 올리기':'선택, 티켓을 인증한 관람객이 내 좌석만 올려요','image','upload')}
   <span class="t-cap">구역 번호, 후기 수, 무대 위치는 예시 데이터예요</span>
  </div>`+tabbar('sight');},
 
@@ -956,16 +984,17 @@ view:()=>{const sec=ui.sec;const vkey=S.venue;const hall=standing();const sh=sho
   ${mine.filter(p=>p.status!=='공개').map(p=>`<div class="card line" style="flex-direction:row;align-items:center;gap:10px"><span class="status">${p.status}</span><span class="t-sm">내가 올린 시야가 검수 중이에요</span></div>`).join('')}
   <h2>티켓 인증 후기 ${revs.length}개</h2>
   ${revs.length?revs.map(r=>`<div class="card" style="padding:14px;gap:6px"><span style="display:flex;gap:8px;align-items:center"><b style="font-size:13px">${esc(r.n)}</b><span class="t-cap" style="color:var(--tp);font-weight:500">티켓 인증${r.h?', 키 '+r.h:''}${r.rating?', '+'★'.repeat(r.rating):''}</span></span><span>${nl(r.t)}</span></div>`).join(''):'<div class="card line"><span class="t-sm">이 구역은 아직 후기가 없어요</span></div>'}
-  ${canUpload?'<button class="btn primary" data-go="upload">내 좌석 시야 등록하기</button>':`<span class="t-cap">${hall?'스탠딩 후기 등록은 확장 단계에서 열려요':'이 좌석의 티켓을 인증한 관람객만 시야를 올릴 수 있어요'}</span>`}
+  ${canUpload?'<button class="btn primary" data-go="upload">내 좌석 시야 등록하기</button>':`<span class="t-cap">${hall?'스탠딩 후기 등록은 확장 단계에서 열려요':'시야 등록은 선택이에요. 이 좌석의 티켓을 인증한 관람객만 올릴 수 있어요'}</span>`}
  </div>`;},
 
 upload:()=>{const t=S.ticket;
- if(!t)return hdr('시야 등록',{backBtn:true})+`<div class="body"><div class="card" style="padding:20px;gap:10px">${ic('ticket',28)}<b style="font-size:16px">티켓을 먼저 등록해 주세요</b><span class="t-sm">시야는 그 좌석의 티켓을 인증한 관람객만<br>올릴 수 있어요. 엉뚱한 좌석 사진을 막기 위해서예요</span><button class="btn primary" data-go="ticket">내 티켓 등록</button></div></div>`;
- if(!t.verified)return hdr('시야 등록',{backBtn:true})+`<div class="body"><div class="card" style="padding:20px;gap:10px">${ic('check',28)}<b style="font-size:16px">티켓 인증이 필요해요</b><span class="t-sm">예매 확인 화면을 캡처해 올리면 공연명과 좌석을<br>확인해 인증해요. 바코드는 자동으로 가려요</span><label class="btn primary" for="vcap" style="cursor:pointer">예매 캡처 올려 인증하기</label><input id="vcap" type="file" accept="image/*" hidden></div></div>`;
+ if(!t)return hdr('시야 등록',{backBtn:true})+`<div class="body"><div class="card" style="padding:20px;gap:10px">${ic('ticket',28)}<b style="font-size:16px">티켓을 먼저 등록해 주세요</b><span class="t-sm">시야 등록은 선택 기능이에요. 티켓을 인증한 관람객이 그 티켓의 좌석 시야만 올릴 수 있어요. 엉뚱한 좌석 사진을 막기 위해서예요</span><button class="btn primary" data-go="ticket">내 티켓 등록</button></div></div>`;
+ if(!t.verified)return hdr('시야 등록',{backBtn:true})+`<div class="body"><div class="card" style="padding:20px;gap:10px">${ic('check',28)}<b style="font-size:16px">티켓 인증이 필요해요</b><span class="t-sm">시야 등록은 원하는 분만 하는 선택 기능이에요. 티켓 등록 화면에서 예매 캡처와 전화번호로 인증하면 내 좌석 시야를 올릴 수 있어요</span><button class="btn primary" data-act="reverify">티켓 인증하러 가기</button></div></div>`;
  const sh=show();const sec=mySec();const allTags=['무대 정면','전광판 잘 보임','단차 높음','시야 방해 있음','측면','무대 가까움'];
  const ok=ui.reviewImg&&ui.rating&&ui.consent;
  return hdr('시야 등록',{backBtn:true})+`<div class="body" style="gap:12px">
   <div class="row" style="padding:14px;gap:10px">${ic('check',20)}<span class="grow"><span style="font-size:12px;font-weight:500">인증된 티켓에서 자동 입력 (수정 불가)</span><b style="font-size:14px">${esc(sh.name)}, ${esc(seatText(t))}</b><span class="t-cap">무대 형태: 엔드 스테이지</span></span></div>
+  <span class="t-cap">시야 등록은 선택이에요. 올린 시야는 회원 모두가 볼 수 있어요</span>
   ${sec?'':'<span class="err">구조도에 없는 구역 번호예요. 등록은 되지만 구조도에는 표시되지 않아요</span>'}
   <div class="card" style="padding:14px;gap:4px"><b style="font-size:13px">촬영 안내</b><span class="t-sm">공연 중 촬영은 금지예요. 공연 시작 전이나 중간 휴식 때 빈 무대를 찍어 주세요. 얼굴과 화면 속 개인정보는 자동으로 가려요</span></div>
   <label class="ph" style="height:170px;cursor:pointer" for="rimg">${ui.reviewImg?`<img src="${ui.reviewImg}" alt="올린 시야 사진">`:`${ic('image',28)}<span>내 자리에서 찍은 사진 올리기 (필수)</span>`}</label>
@@ -1039,7 +1068,7 @@ move:()=>{const sh=show();const arr=sh.end?addMin(sh.end,23):null;
   ${kinds.includes('near')?'<span class="t-cap">상가 목록과 위치는 소상공인시장진흥공단 상가정보로 연동할 예정이에요. 지금은 네이버 지도 검색으로 연결해요</span>':''}
   ${kinds.includes('parking')?'<span class="t-cap">공연 당일 고척돔 주차장은 일반 주차 불가. 주차장 정보 출처: 서울시설공단</span>':''}
   <span class="t-cap">출처: 서울시설공단 고척스카이돔 교통 안내. 지도: 네이버 지도</span>
-  <button class="btn ${S.alarm?'secondary':'primary'}" data-act="alarm">${S.alarm?'귀가 알림 설정됨 (누르면 해제)':'공연 종료 10분 전 귀가 알림 받기'}</button>
+  <button class="btn ${S.alarm?'secondary':'primary'}" data-act="alarm">${S.alarm?'귀가 알림 설정됨, 30분 전과 10분 전 (누르면 해제)':'공연 종료 30분 전, 10분 전 귀가 알림 받기'}</button>
  </div>`+tabbar('move');},
 
 mapview:()=>{const kinds=ui.mapKinds||['subway'];const list=PLACES.filter(p=>kinds.includes(p.kind)||(kinds.includes('dome')&&p.kind==='dome'));
@@ -1051,27 +1080,56 @@ mapview:()=>{const kinds=ui.mapKinds||['subway'];const list=PLACES.filter(p=>kin
   ${list.map(p=>`<button class="row" data-mfocus="${p.id}" style="${ui.mfocus===p.id?'background:var(--card);border:1px solid var(--bstrong)':''}"><span class="grow"><b>${esc(p.name)}</b><span class="t-sm">${esc(p.desc)}</span></span>${p.lat==null?'<span class="tag">위치 확인 필요</span>':ic('pin',18)}</button>`).join('')}
  </div>`;},
 
-comm:()=>{const sh=show();
- let inner;
- if(ui.ctab==='시야 후기'){const all=[...S.posts.filter(p=>p.status==='공개'||!p.status).map(p=>({seat:p.seat,t:p.t,n:S.nick||'나',img:p.img})),...SEED_POSTS];
-  inner=`<span class="t-sm" style="font-weight:500">${esc(sh.name)} 후기 ${all.length}개</span>`+all.map(p=>`<div class="row" style="padding:12px"><span class="thumb">${p.img?`<img src="${p.img}" alt="">`:ic('image',22)}</span><span class="grow" style="gap:3px"><b style="font-size:13px">${esc(p.seat)}</b><span style="font-size:13px">${esc(p.t.split('\n')[0])}</span><span class="t-cap" style="color:var(--tp)">${esc(p.n)}, 티켓 인증</span></span></div>`).join('');}
- else if(ui.ctab==='동행'){inner=`<div class="card line"><b>동행 안전 수칙</b><span class="t-sm">연락처는 자동으로 가려져요. 앱 안 메시지로만 대화하고, 공공장소에서 만나요. 신고하면 바로 숨겨져요</span></div><div class="card line"><span class="t-sm">글쓰기와 댓글은 이 공연 티켓을 등록한 사람만 할 수 있어요</span></div>`;}
- else{inner=`${row('MD 현황','품목, 상태, 대기시간 제보 (30분 지나면 흐리게)','box')}${row('공연 공지','입장 시각, 반입 금지 물품','bell')}`;}
- return hdr('커뮤니티')+`<div class="body" style="gap:12px">${chips(['시야 후기','동행','공연 정보'],ui.ctab,'ctab')}${inner}<div class="spacer"></div>${ui.ctab==='시야 후기'?'<button class="btn primary" data-act="write">내 좌석 시야 등록하기</button>':''}</div>`+tabbar('comm');},
+comm:()=>{const sh=show();const cert=isCert();
+ const member=`<div class="row" style="padding:10px 14px;gap:10px">${ic(cert?'check':'user',20)}<span class="grow"><b style="font-size:13px">${cert?'인증 회원':'일반 회원'}</b><span class="t-cap">${cert?'동행 구하기, 공개 범위 지정, 내 좌석 시야 등록을 쓸 수 있어요':'티켓을 인증하면 동행 구하기와 공개 범위 지정을 쓸 수 있어요'}</span></span>${cert?'':'<button class="tag" data-act="reverify">인증하기</button>'}</div>`;
+ const posts=tab=>{const l=allComm().filter(p=>p.tab===tab);return l.length?l.map(cRow).join(''):'<div class="card"><span class="t-sm">아직 글이 없어요</span></div>';};
+ let inner,act='';
+ if(ui.ctab==='시야 후기'){const all=allReviews();
+  inner=`<span class="t-sm" style="font-weight:500">${esc(sh.name)} 후기 ${all.length}개, 누구나 볼 수 있어요</span>`+all.map(rRow).join('');
+  act='<button class="btn primary" data-act="write">내 좌석 시야 등록하기 (선택)</button>';}
+ else if(ui.ctab==='동행'){inner=`<div class="card line"><b>동행 안전 수칙</b><span class="t-sm">연락처는 자동으로 가려져요. 앱 안 메시지로만 대화하고, 공공장소에서 만나요. 신고하면 바로 숨겨져요</span></div>`+
+  (cert?posts('동행'):`<div class="card" style="padding:20px;gap:10px">${ic('lock',26)}<b style="font-size:15px">동행 구하기는 티켓 인증 회원만 이용해요</b><span class="t-sm">예매 캡처와 전화번호로 티켓을 인증하면 글을 보고 쓸 수 있어요</span><button class="btn primary" data-act="reverify">티켓 인증하기</button></div>`);
+  if(cert)act='<button class="btn primary" data-act="cwrite" data-wtab="동행">동행 구하기 글쓰기</button>';}
+ else{inner=`${row('MD 현황','품목, 상태, 대기시간 제보 (30분 지나면 흐리게)','box')}${row('공연 공지','입장 시각, 반입 금지 물품','bell')}<h2 style="font-size:15px">이용자 글</h2>${posts('공연 정보')}`;
+  act='<button class="btn primary" data-act="cwrite" data-wtab="공연 정보">글쓰기</button>';}
+ return hdr('커뮤니티')+`<div class="body" style="gap:12px">${member}${chips(['시야 후기','동행','공연 정보'],ui.ctab,'ctab')}${inner}<span class="t-cap">북마크한 글은 마이페이지의 저장한 글에서 모아 봐요</span><div class="spacer"></div>${act}</div>`+tabbar('comm');},
+
+cwrite:()=>{const cert=isCert();const tab=ui.wtab||'공연 정보';const vis=cert?ui.wvis:'all';
+ return hdr(tab==='동행'?'동행 구하기 글쓰기':'글쓰기',{backBtn:true})+`<div class="body" style="gap:12px">
+  <span class="tag" style="align-self:flex-start">${esc(tab)}</span>
+  <div class="field"><label for="ctitle">제목</label><input id="ctitle" class="input" maxlength="40" value="${esc(ui.wtitle||'')}"></div>
+  <div class="field"><label for="cbody">내용</label><textarea id="cbody" class="input" maxlength="500" placeholder="${tab==='동행'?'만날 장소와 시간, 인원을 적어 주세요':'공연장에서 본 것, 알게 된 것을 나눠 주세요'}">${esc(ui.wbody||'')}</textarea></div>
+  <h2 style="font-size:15px">볼 수 있는 사람</h2>
+  ${cert?`<div class="chips" role="group"><button class="chip" data-wvis="all" aria-pressed="${vis==='all'}">전체 공개</button><button class="chip" data-wvis="cert" aria-pressed="${vis==='cert'}">인증 회원만</button></div>`:'<span class="t-sm">전체 공개. 티켓을 인증하면 인증 회원만 보기로 정할 수 있어요</span>'}
+  <span class="t-cap">전화번호와 이메일은 올릴 때 자동으로 가려져요</span>
+  <div class="spacer"></div>
+  <button class="btn primary" data-act="cpost">올리기</button>
+ </div>`;},
+
+saved:()=>{const ids=S.bm||[];const comm=allComm(),revs=allReviews();
+ const items=ids.map(id=>{const c=comm.find(p=>p.id===id);if(c)return cRow(c);const r=revs.find(p=>p.id===id);return r?rRow(r):'';}).filter(Boolean);
+ return hdr('저장한 글',{backBtn:true})+`<div class="body" style="gap:12px">
+  <span class="t-sm" style="font-weight:500">북마크한 글 ${items.length}개</span>
+  ${items.length?items.join(''):`<div class="card" style="padding:20px;gap:8px">${ic('bookmark',26)}<span class="t-sm">커뮤니티 글의 북마크를 누르면 여기에 모여요</span></div>`}
+ </div>`;},
 
 my:()=>{const t=S.ticket;const mine=S.posts;
  return hdr('마이페이지',{backBtn:true})+`<div class="body" style="gap:12px">
-  <div class="row" style="padding:18px;gap:14px"><span class="logo" style="width:52px;height:52px;border-radius:26px">${ic('user',26)}</span><span class="grow"><b style="font-size:18px">${S.joined?esc(S.nick):'둘러보는 중'}</b><span class="t-sm">${S.joined?'관심 공연장: '+esc(V().name):'가입하면 티켓과 후기를 저장할 수 있어요'}</span></span></div>
+  <div class="row" style="padding:18px;gap:14px"><span class="logo" style="width:52px;height:52px;border-radius:26px">${ic('user',26)}</span><span class="grow"><b style="font-size:18px">${S.joined?esc(S.nick):'둘러보는 중'}</b><span style="display:flex;gap:6px;align-items:center;margin-top:2px"><span class="status">${isCert()?'인증 회원':'일반 회원'}</span></span><span class="t-sm">${S.joined?'관심 공연장: '+esc(V().name):'가입하면 티켓과 후기를 저장할 수 있어요'}</span></span></div>
   ${S.joined?'':'<button class="btn primary" data-go="signup">가입하기</button>'}
   <h2>내 티켓</h2>
   ${t?`<div class="card line" style="gap:6px"><span style="display:flex;align-items:center;gap:8px"><b style="flex:1;min-width:0;font-size:15px">${esc(show().name)}</b><span class="status">${t.verified?'인증 완료':'인증 대기'}</span></span><span class="t-sm">${esc(seatText(t))}</span></div>${row('티켓 다시 등록','좌석이 바뀌었거나 다른 공연을 볼 때','ticket','ticket')}`
    :row('내 티켓 등록','등록하면 내 좌석 기준으로 안내해요','ticket','ticket')}
+  <h2>인증 내역</h2>
+  ${(S.certs||[]).length?`<div class="card line" style="gap:10px">${S.certs.map(c=>{const sh=SHOWS.find(x=>x.id===c.show);return `<span style="display:flex;flex-direction:column;gap:2px"><b style="font-size:14px">${esc(sh?sh.name:'공연')}</b><span class="t-sm">${esc(c.seat)}</span><span class="t-cap">${esc(fmtAt(c.at))}, ${esc(c.how)}</span></span>`;}).join('<hr style="border:0;border-top:1px solid var(--border);margin:0;width:100%">')}</div><span class="t-cap">인증 여부와 일시만 남기고 캡처와 전화번호는 남기지 않아요</span>`
+   :`<div class="card" style="gap:8px"><span class="t-sm">아직 인증한 티켓이 없어요. 인증은 선택이에요</span><button class="btn secondary" data-act="reverify">티켓 인증하기</button></div>`}
+  ${row(`저장한 글 ${(S.bm||[]).length}개`,'커뮤니티에서 북마크한 글 모아 보기','bookmark','saved')}
   <h2>내가 올린 시야 ${mine.length}개</h2>
   ${mine.length?mine.map(p=>`<div class="row" style="padding:12px"><span class="thumb">${p.img?`<img src="${p.img}" alt="">`:ic('image',22)}</span><span class="grow" style="gap:3px"><b style="font-size:13px">${esc(p.seat)}</b><span style="font-size:13px">${esc(String(p.t).split('\n')[0])}</span><span class="t-cap">${p.rating?'★'.repeat(p.rating)+', ':''}${esc(p.status||'공개')}</span></span></div>`).join('')
    :'<div class="card"><span class="t-sm">아직 올린 시야가 없어요. 티켓을 인증하면 내 좌석 시야를 올릴 수 있어요</span></div>'}
   <h2>설정</h2>
   <button class="row" data-act="${ui.me?'locoff':'locate'}">${ic('locate',22)}<span class="grow"><b>내 위치 사용</b><span class="t-sm">${ui.me?'켜짐, 이번 접속에서만 쓰고 저장하지 않아요':'꺼짐, 길 안내를 쓸 때 켜요'}</span></span><span class="tag">${ui.me?'끄기':'켜기'}</span></button>
-  <button class="row" data-act="alarm">${ic('bell',22)}<span class="grow"><b>귀가 알림</b><span class="t-sm">공연 종료 10분 전에 귀가 방법 안내</span></span><span class="tag">${S.alarm?'켜짐':'꺼짐'}</span></button>
+  <button class="row" data-act="alarm">${ic('bell',22)}<span class="grow"><b>귀가 알림</b><span class="t-sm">공연 종료 30분 전, 10분 전 두 번 귀가 방법 안내</span></span><span class="tag">${S.alarm?'켜짐':'꺼짐'}</span></button>
   <button class="row" data-act="offsave" ${NET.busy?'disabled':''}>${ic('download',22)}<span class="grow"><b>오프라인 저장</b><span class="t-sm">${NET.busy?'저장 중':OFF.at?`${esc(fmtSaved(OFF.at))} 저장, 이동과 공연장 정보를 인터넷 없이 봐요`:'공연장 가기 전에 저장해 두면 데이터가 안 터져도 봐요'}</span></span><span class="tag">${OFF.at?'다시 저장':'저장'}</span></button>
   ${row('공연장 바꾸기',V().name,'pin','venue')}
   <div class="spacer"></div>
@@ -1117,7 +1175,9 @@ function bindInputs(){
  const vq=document.getElementById('vq');
  if(vq)vq.addEventListener('input',()=>{ui.q=vq.value;const pos=vq.selectionStart;render();const n=document.getElementById('vq');n.focus();n.setSelectionRange(pos,pos);});
 }
-function saveDraft(){const g=k=>(document.getElementById('f-'+k)||{}).value||'';S._draft={floor:g('floor'),zone:g('zone'),row:g('row'),no:g('no')};}
+function saveDraft(){const g=k=>(document.getElementById('f-'+k)||{}).value||'';S._draft={floor:g('floor'),zone:g('zone'),row:g('row'),no:g('no')};
+ /* 전화번호는 저장소(S)에 넣지 않고 이번 화면(ui)에서만 들고 있다가 대조 후 지운다 */
+ const ph=document.getElementById('f-phone');if(ph)ui.phone=ph.value;}
 
 app.addEventListener('click',e=>{
  const mf=e.target.closest('[data-mfocus]');if(mf){const id=mf.dataset.mfocus;setFocus(id);MAPH&&MAPH.focus(id);const mb=document.getElementById('mbox');if(mb&&mf.tagName==='BUTTON')mb.scrollIntoView({behavior:'smooth',block:'nearest'});return;}
@@ -1152,6 +1212,8 @@ app.addEventListener('click',e=>{
  if(d.stand){ui.stand=d.stand;render();return;}
  if(d.vtab){ui.vtab=d.vtab;render();return;}
  if(d.ctab){ui.ctab=d.ctab;render();return;}
+ if(d.bm){const id=d.bm;S.bm=S.bm||[];S.bm=isBm(id)?S.bm.filter(x=>x!==id):[id,...S.bm];save();render();toast(isBm(id)?'저장한 글에 넣었어요':'저장한 글에서 뺐어요');return;}
+ if(d.wvis){ui.wtitle=(document.getElementById('ctitle')||{}).value||'';ui.wbody=(document.getElementById('cbody')||{}).value||'';ui.wvis=d.wvis;render();return;}
  if(d.sel){saveDraft();ui.sel=d.sel;render();return;}
  if(d.tagt){ui.draft=document.getElementById('rtext').value;ui.tags.has(d.tagt)?ui.tags.delete(d.tagt):ui.tags.add(d.tagt);render();return;}
  if(d.agree!==undefined){if(d.agree==='all'){const v=!ui.agree.every(Boolean);ui.agree=ui.agree.map(()=>v);}else{ui.agree[+d.agree]=!ui.agree[+d.agree];}render();return;}
@@ -1160,13 +1222,23 @@ app.addEventListener('click',e=>{
    S.venue=d.venue;save();toast(`${v.name}(으)로 바꿨어요`);stack=['home'];render();return;}
  switch(d.act){
   case 'back':back();break;
-  case 'browse':stack=['home'];render();break;
   case 'bell':toast(S.ticket?'예매 오픈과 출발 알림을 받고 있어요':'티켓을 등록하면 알림을 받을 수 있어요');break;
   case 'join':S.joined=true;S.nick=S.nick.trim();save();stack=['home'];render();toast(`${S.nick}님, 가입을 마쳤어요`);break;
   case 'register':{saveDraft();const x=S._draft;if(!x.floor||!x.zone||!x.row||!x.no){toast('좌석 정보를 모두 입력해 주세요');return;}
-    S.ticket={show:ui.sel,floor:x.floor,zone:x.zone.replace(/[^0-9A-Za-z]/g,''),row:x.row.replace('열',''),no:x.no.replace('번',''),verified:!!ui.img};S.venue='gocheok';
-    if(ZONES[S.ticket.zone])ui.zone=S.ticket.zone;save();stack=['home'];render();toast('티켓을 등록했어요');break;}
-  case 'alarm':S.alarm=!S.alarm;save();render();toast(S.alarm?'공연 종료 10분 전에 귀가 방법을 알려 드릴게요':'귀가 알림을 껐어요');break;
+    const phoneOk=/^01[016789]\d{7,8}$/.test((ui.phone||'').replace(/\D/g,''));
+    if(ui.img&&!phoneOk){toast('예매자 전화번호를 확인해 주세요');return;}
+    const ok=!!ui.img&&phoneOk;
+    S.ticket={show:ui.sel,floor:x.floor,zone:x.zone.replace(/[^0-9A-Za-z]/g,''),row:x.row.replace('열',''),no:x.no.replace('번',''),verified:ok};S.venue='gocheok';
+    if(ok){S.certs=S.certs||[];S.certs.unshift({show:ui.sel,seat:seatText(S.ticket),at:new Date().toISOString(),how:'예매 캡처 + 전화번호 대조'});}
+    ui.img=null;ui.phone='';
+    if(ZONES[S.ticket.zone])ui.zone=S.ticket.zone;save();stack=['home'];render();toast(ok?'티켓을 인증했어요. 캡처와 번호는 지웠어요':'티켓을 등록했어요');break;}
+  case 'alarm':S.alarm=!S.alarm;save();render();toast(S.alarm?'공연 종료 30분 전과 10분 전에 귀가 방법을 알려 드릴게요':'귀가 알림을 껐어요');break;
+  case 'cwrite':if(d.wtab==='동행'&&!isCert()){toast('동행 구하기는 티켓 인증 회원만 쓸 수 있어요');return;}ui.wtab=d.wtab;ui.wtitle='';ui.wbody='';ui.wvis='all';go('cwrite');break;
+  case 'cpost':{const title=maskContact(document.getElementById('ctitle').value.trim()),body=maskContact(document.getElementById('cbody').value.trim());
+    if(!title){toast('제목을 적어 주세요');return;}
+    const d0=new Date();S.cposts=S.cposts||[];S.cposts.unshift({id:'u'+Date.now(),tab:ui.wtab,title,body,n:S.nick||'나',cert:isCert(),vis:isCert()?ui.wvis:'all',at:`${d0.getMonth()+1}/${d0.getDate()}`});
+    save();ui.ctab=ui.wtab;stack=['comm'];render();toast('글을 올렸어요');break;}
+  case 'reverify':{const t=S.ticket;if(t){S._draft={floor:t.floor,zone:t.zone,row:t.row,no:t.no};ui.sel=t.show;}ui.img=null;ui.phone='';go('ticket');break;}
   case 'write':ui.reviewImg=null;ui.draft='';ui.rating=0;ui.consent=false;ui.tags=new Set();go('upload');break;
   case 'view':ui.sec=d.s;ui.vmode='3d';go('view');break;
   case 'reset3d':R3&&R3.reset();break;
