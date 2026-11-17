@@ -15,9 +15,11 @@
 | 파일 | 내용 |
 |---|---|
 | `index.html` | 앱 전체 (HTML, CSS, JS 한 파일. 빌드 없음) |
+| `store.js` | 앱과 운영자 화면이 같이 쓰는 저장소 `DB`(localStorage 키 `gocheok-db-v1`, 예시 구조를 바꾸면 `VER`를 올림). 공연 기본값 `BASE.SHOWS`, 주차장 `BASE.LOTS`, 인증 신청 `verifs`, 시야 `sights`, 커뮤니티 글 `posts`, 신고 `reports`, 장소 제보 `infos`, 신규 구역 후보 `zoneCands`, 금칙어 `words`, 공지 `notices`, 운영자 입력(`shows`, `lots`), 설정, 처리 기록 `logs`. `DB.show()`, `DB.openInfo()`, `DB.lot()`, `DB.check()`(금칙어, 연락처), `DB.memberOf()`. 다른 탭에서 바뀌면 `storage` 이벤트로 `DB.on` 구독자가 다시 그림. 실제 서비스에서는 서버 DB 자리 |
+| `admin.html` | 운영자 화면(Figma 「관리자 화면」 A-01~A-08). 대시보드, 공연 관리(입장 시각, 출입문, 무대 템플릿), 좌석 템플릿과 신규 구역 후보, 회원 인증 검수, 시야 사진 검수, 신고 처리, 장소 정보 관리(주차 값 수정, 이용자 제보), 통계와 설정(금칙어, 공지, 데모 초기화). PC는 왼쪽 메뉴, 900px 아래는 위쪽 가로 메뉴. 앱과 같은 브라우저에서 열면 서로 바로 반영 |
 | `config.js` | 네이버 지도 Client ID, 인증 파라미터 이름, Tmap, ODsay 키(공개 키). **Client Secret 금지** |
 | `README.md` | 실행, 배포, 네이버 지도 설정, 데이터 출처 |
-| `sw.js` | 오프라인 저장용 서비스 워커. 앱 파일(index.html, config.js, data/shops.json)은 네트워크 먼저(3초 넘으면 저장본), three.js와 글꼴은 저장본 먼저. 외부 API와 지도 타일은 건드리지 않음. **앱 파일 구성을 바꾸면 `VERSION`을 올릴 것** |
+| `sw.js` | 오프라인 저장용 서비스 워커. 앱 파일(index.html, admin.html, config.js, store.js, data/shops.json)은 네트워크 먼저(3초 넘으면 저장본), three.js와 글꼴은 저장본 먼저. 외부 API와 지도 타일은 건드리지 않음. **앱 파일 구성을 바꾸면 `VERSION`을 올릴 것** |
 | `.nojekyll` | GitHub Pages가 Jekyll 처리를 하지 않게 함 |
 
 외부 라이브러리: three.js r128 (cdnjs), NAVER Maps JS v3 (`oapi.map.naver.com`, `submodules=geocoder`), Noto Sans KR (Google Fonts).
@@ -35,8 +37,8 @@
    - `ZONES`, `STAND`: 구역별 태그와 예시 후기 (지정석, 스탠딩)
    - `LOTS`: 고척돔 주변 주차장 5곳 (서울시설공단 기준 실제 값)
    - 주변 상가: `data/shops.json`을 `loadShops()`로 불러와 `PLACES`에 `kind:'shop'`(`venue`, `cat`, `dv`=공연장에서 거리)으로 추가. `shopsOf(venue)`, `SHOP_CATS`. 파일은 `tools/build_shops.py`로 소상공인시장진흥공단 상가(상권)정보 CSV에서 생성 (수도권 서울, 인천, 경기 파일 기준, 2026-09-30 자료). 공연장 좌표를 확인한 곳만 `VENUES`에 넣을 것. 영업시간은 원자료에 없음
-   - `SEED_POSTS`: 시야 후기 예시(id v1~v3). `COMM_SEED`: 동행, 공연 정보 예시 글(`vis:'all'|'cert'`, 쓴 사람 `cert`)
-   - 회원 도우미: `isCert()`(인증 내역 `S.certs`가 있으면 인증 회원), `canSee()`(공개 범위), `bmBtn()`, `isBm()`, `allComm()`, `allReviews()`, `rRow()`, `cRow()`, `maskContact()`(전화번호, 이메일 가림)
+   - `SEED_POSTS`: 시야 후기 예시(id v1~v3). 커뮤니티 예시 글, 인증 신청, 신고 예시는 `store.js` `seed()`에 있음 (`board:'동행'|'공연 정보'`, `vis:'전체'|'인증 회원'`)
+   - 회원 도우미: `isCert()`(DB에 승인된 인증 신청이 있으면 인증 회원), `tState(t)`(내 티켓: 인증 완료, 인증 대기, 확인용 등록), `tVer()`, `allComm()`과 `allReviews()`는 DB에서 읽어 화면 형식으로 바꿈, `repBtn()`(신고), `canSee()`(공개 범위), `bmBtn()`, `isBm()`, `allComm()`, `allReviews()`, `rRow()`, `cRow()`, `maskContact()`(전화번호, 이메일 가림)
 4. **3D 모듈 (three.js)**
    - `G`: 고척돔 모형. 원점은 마운드 근처, 홈플레이트 z=+28, 외야는 -z, 무대는 외야 쪽 엔드 스테이지(z=-84). 층별 `floors`, 층당 `secs:20` 구역, 플로어 `ground` A~L
    - `H`: 롤링홀(스탠딩) 모형, 확장 예시
@@ -54,8 +56,8 @@
    - `placeGroups()`: 지도 이름표가 겹치면 대표 하나 + "+n", 나머지는 점. 최대 확대에서도 겹치면 목록 창
    - `startRoute()`는 네이버 지도 앱 URL Scheme(`nmap://route/walk|public|car`, Android는 `intent://`)으로 내 위치 출발 길 안내를 넘김. 컴퓨터에서는 네이버 지도 장소 검색을 엶
    - `kind:'near'`(편의점, 식당, 카페, 약국 검색 링크): `data/shops.json`을 못 불러왔을 때만 쓰는 대체 항목
-6. **상태**: `S`(localStorage 키 `gocheok-app-v1`에 저장: 닉네임, 티켓, 공연장, 내가 올린 시야, 알림, 인증 내역 `certs`, 북마크 `bm`, 커뮤니티 글 `cposts`. **전화번호와 캡처는 저장하지 않음**, `ui.phone`, `ui.img`에만 두고 등록 후 지움), `OFF`(`gocheok-offline-v1`: 오프라인 저장 시각, 돔 출발 경로), `ui`(화면 상태, 저장 안 함), `stack`(화면 이동 기록)
-7. **SCREENS**: `start, signup, home, ticket, sight, view, upload, place, move, mapview, comm, cwrite, saved, venue, my`. `cwrite`는 커뮤니티 글쓰기(공개 범위), `saved`는 저장한 글(북마크). `my`는 마이페이지(탭 화면 헤더 오른쪽 사람 아이콘, `data-go="my"`). 각 함수는 HTML 문자열을 반환하고, 3D나 지도가 필요하면 `ui._mount`에 마운트 함수를 넣는다
+6. **상태**: `S`(localStorage 키 `gocheok-app-v1`에 저장: `uid`, 닉네임, 티켓, 공연장, 알림, 북마크 `bm`. 예전 `certs`, `posts`, `cposts`는 처음 열 때 DB로 옮기고 비움), `DB`(store.js 공유 저장소: 인증 신청, 시야, 글, 신고, 제보). **캡처와 전화번호는 인증 신청(`verifs`)에만 들어가고 운영자가 승인이나 반려하면 바로 지움(뒷자리 4개만 남김)**, `OFF`(`gocheok-offline-v1`: 오프라인 저장 시각, 돔 출발 경로), `ui`(화면 상태, 저장 안 함), `stack`(화면 이동 기록)
+7. **SCREENS**: `start, signup, home, ticket, sight, view, upload, place, move, mapview, comm, cwrite, saved, report, info, venue, my`. `report`는 글, 시야 신고, `info`는 '정보가 달라요' 장소 제보. `cwrite`는 커뮤니티 글쓰기(공개 범위), `saved`는 저장한 글(북마크). `my`는 마이페이지(탭 화면 헤더 오른쪽 사람 아이콘, `data-go="my"`). 각 함수는 HTML 문자열을 반환하고, 3D나 지도가 필요하면 `ui._mount`에 마운트 함수를 넣는다
 8. **render()**: 이전 3D/지도 정리(`disposeR3` → `disposeMap`) → innerHTML 교체 → `ui._mount` 실행
 9. **클릭 처리**: `#app` 하나에 이벤트 위임. `data-go`, `data-tab`, `data-act`, `data-sec`, `data-floor`, `data-vmode`, `data-mset`, `data-mapgo`, `data-mfocus` 등 data 속성으로 분기
 
@@ -66,7 +68,7 @@ M-01 시작 → M-02 가입과 동의 → M-03 홈(티켓 전) → M-04 티켓 �
 팀 결정 사항(바꾸지 말 것, 2026-11-17 팀 피드백 반영):
 - **회원제**: 가입해야 이용(둘러보기 없음). 가입만 하면 일반 회원, 티켓을 인증하면 인증 회원(다음 카페 회원제처럼). 등급과는 별개
 - "내 티켓"은 내 공연 정보를 확인하는 입력이자 내 좌석 기준 안내의 출발점. 티켓 등록 화면의 예매 캡처는 유지(이후 캡처 속 글자 인식으로 자동 입력 확장 예정)
-- 인증 방법: **결제 내역(예매) 캡처 + 전화번호 대조**. 대조 후 캡처와 번호 원본은 파기, 인증 여부와 일시만 저장(법령 원문 확인 필요). 인증 내역은 계정에 남음. GPS, 현장 촬영 같은 실관람 2단계 인증은 쓰지 않음
+- 인증 방법: **결제 내역(예매) 캡처 + 전화번호 대조**. 티켓 등록에서 신청하면 운영자 화면 '회원 인증 검수'에서 사람이 대조하고 승인(그동안 '인증 대기'). 대조 후 캡처와 번호 원본은 파기, 인증 여부와 일시만 저장(법령 원문 확인 필요). 인증 내역은 계정에 남음. GPS, 현장 촬영 같은 실관람 2단계 인증은 쓰지 않음
 - 인증 회원 기능: 글 공개 범위 지정(전체, 인증 회원만), 동행 구하기, 내 좌석 시야 등록. 일반 회원은 그 밖의 기본 커뮤니티 이용. 상단 노출 같은 혜택은 없음
 - 시야 정보는 모든 회원에게 공개. 시야 등록은 **선택**이고, 티켓을 인증한 사람이 그 티켓의 좌석 시야만 올림. 공연과 좌석은 티켓에서 자동 입력(수정 불가). 사진, 별점, 공개 동의 필수. AI 1차 검수 후 공개
 - 커뮤니티 북마크: 글마다 북마크, 마이페이지 "저장한 글"에서 모아 봄
@@ -122,9 +124,10 @@ python3 -m http.server 8000   # http://localhost:8000
 
 - 화면 확인은 폭 390px 휴대폰 크기 기준
 - 3D는 WebGL 필요. 헤드리스 Chromium으로 확인할 때는 `--use-gl=swiftshader --enable-webgl --ignore-gpu-blocklist`
-- 저장 상태 초기화: 브라우저 콘솔에서 `localStorage.removeItem('gocheok-app-v1')`
+- 저장 상태 초기화: 브라우저 콘솔에서 `localStorage.removeItem('gocheok-app-v1')`. 공유 저장소는 운영자 화면 '통계와 설정 > 처음 상태로 되돌리기' 또는 `localStorage.removeItem('gocheok-db-v1')`
+- 운영자 화면 `admin.html`은 앱과 같은 브라우저의 다른 탭에서 열어 테스트
 - GitHub Pages는 캐시가 있어 push 직후 예전 화면이 보일 수 있음. `index.html?v=숫자`로 열어 확인
-- 수정 후 한 번은 직접 눌러 볼 것: 가입 → 커뮤니티(일반 회원: 동행 잠김, 인증 회원만 글 잠김) → 티켓 등록(캡처 + 전화번호로 인증) → 마이페이지 인증 내역, 저장한 글 → 시야 구조도 → 3D 시야 → 시야 등록 → 공연장 3D와 층 필터 → 이동 지도 → 공연장 선택에서 롤링홀 전환
+- 수정 후 한 번은 직접 눌러 볼 것: 가입 → 커뮤니티(일반 회원: 동행 잠김, 인증 회원만 글 잠김) → 티켓 등록(캡처 + 전화번호로 인증 신청) → admin.html 회원 인증 검수에서 승인 → 동행 글, 신고 → admin.html 신고 처리 → 마이페이지 인증 내역, 저장한 글 → 시야 구조도 → 3D 시야 → 시야 등록 → 공연장 3D와 층 필터 → 이동 지도 → 공연장 선택에서 롤링홀 전환
 
 ## 9. 남은 작업 (우선순위 순)
 
@@ -138,7 +141,7 @@ python3 -m http.server 8000   # http://localhost:8000
    - ~~오프라인 저장~~ 완료(2026-11-15). 남은 것: 지도 타일 오프라인(저장 가능 여부는 네이버 약관 원문 확인 필요, 지금은 약도로 대체), 경로 결과 저장 가능 범위는 Tmap 이용약관 원문 확인 필요
 7. 회원, 티켓, 시야 후기를 브라우저 저장소에서 실제 DB로 옮기기 (여러 사람이 공유하려면 필요). 테이블: 회원(인증 상태), 인증 이력, 게시글(공개 범위), 북마크
    - 예매 캡처 글자 인식(OCR)으로 공연, 좌석 자동 입력, 전화번호 실제 대조 (⑥ AI와 연결)
-8. 운영자 화면 (검수, 신고 처리, 정보 갱신, 통계)
+8. ~~운영자 화면~~ 1차 완료(2026-11-17, `admin.html`, 같은 브라우저 안에서 공유). 남은 것: 운영자 로그인과 권한, 실제 알림 발송, 앱 안 메시지, 시설 위치 편집
 9. 다른 공연장 데이터 추가 (공연장 모형 데이터만 추가하면 같은 화면이 동작하도록 유지)
 
 ## 10. 관련 자료 (이 저장소 밖)
