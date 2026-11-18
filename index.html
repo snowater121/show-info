@@ -13,19 +13,20 @@
 <style>
 /* Layout: one phone-width app column, header on top, scrolling body, tab bar fixed at the bottom. Tokens = Figma "Theme" collection */
 :root{
-  --bg:#fafafa;--card:#ffffff;--muted:#f0f0f0;--ph:#e5e5e5;--inv:#0a0a0a;
-  --border:#e5e5e5;--bstrong:#0a0a0a;--tp:#0a0a0a;--ts:#525252;
-  --on-inv:#ffffff;--on-inv-m:#a3a3a3;--focus:#737373;--icon-ph:#8a8a8a;
-  --desk:#e9e9e9;--mid:#a3a3a3;
+  /* 흰색은 눈부시지 않게 살짝 따뜻한 오프화이트로 (2026-11-17) */
+  --bg:#f4f3ef;--card:#f9f8f5;--muted:#ebeae5;--ph:#e1e0da;--inv:#0a0a0a;
+  --border:#e1e0da;--bstrong:#0a0a0a;--tp:#0a0a0a;--ts:#525252;
+  --on-inv:#f4f3ef;--on-inv-m:#a3a3a3;--focus:#737373;--icon-ph:#8a8a8a;
+  --desk:#e4e3de;--mid:#a3a3a3;
   --font:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#000000;--card:#111111;--muted:#1c1c1c;--ph:#262626;--inv:#fafafa;
-  --border:#2e2e2e;--bstrong:#fafafa;--tp:#fafafa;--ts:#a3a3a3;
+  --bg:#000000;--card:#111111;--muted:#1c1c1c;--ph:#262626;--inv:#e9e8e3;
+  --border:#2e2e2e;--bstrong:#e9e8e3;--tp:#e9e8e3;--ts:#a3a3a3;
   --on-inv:#0a0a0a;--on-inv-m:#525252;--focus:#8a8a8a;--icon-ph:#737373;--desk:#0d0d0d;--mid:#525252;color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#000000;--card:#111111;--muted:#1c1c1c;--ph:#262626;--inv:#fafafa;
-  --border:#2e2e2e;--bstrong:#fafafa;--tp:#fafafa;--ts:#a3a3a3;
+  --bg:#000000;--card:#111111;--muted:#1c1c1c;--ph:#262626;--inv:#e9e8e3;
+  --border:#2e2e2e;--bstrong:#e9e8e3;--tp:#e9e8e3;--ts:#a3a3a3;
   --on-inv:#0a0a0a;--on-inv-m:#525252;--focus:#8a8a8a;--icon-ph:#737373;--desk:#0d0d0d;--mid:#525252;color-scheme:dark}
 
 html,body{height:100%}
@@ -132,16 +133,16 @@ textarea.input{min-height:110px;resize:vertical}
 .mapcanvas .pt text{fill:var(--tp);font-weight:700;font-family:var(--font);paint-order:stroke;stroke:var(--card);stroke-width:10px}
 .mapcanvas .cap{fill:var(--ts);font-family:var(--font)}
 .mapnote{position:absolute;left:8px;right:8px;bottom:8px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--ts)}
-.mk{transform:translate(-50%,-50%);background:#fafafa;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:999px;padding:3px 9px;font:700 12px/1.3 "Noto Sans KR",sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25)}
-.mk-subway,.mk-dome,.on>.mk{background:#0a0a0a;color:#fafafa}
-.mk.mk-me{background:#0a0a0a;color:#fafafa;border-color:#fafafa;box-shadow:0 0 0 3px #0a0a0a,0 2px 6px rgba(0,0,0,.3)}
+.mk{transform:translate(-50%,-50%);background:#f4f3ef;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:999px;padding:3px 9px;font:700 12px/1.3 "Noto Sans KR",sans-serif;white-space:nowrap;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.mk-subway,.mk-dome,.on>.mk{background:#0a0a0a;color:#f4f3ef}
+.mk.mk-me{background:#0a0a0a;color:#f4f3ef;border-color:#f4f3ef;box-shadow:0 0 0 3px #0a0a0a,0 2px 6px rgba(0,0,0,.3)}
 .mapcanvas .pt.me circle{fill:var(--inv);stroke:var(--card);stroke-width:8}
 .mapcanvas .rcase{fill:none;stroke:var(--card);stroke-width:22;stroke-linecap:round;stroke-linejoin:round}
 .mapcanvas .rmain{fill:none;stroke:var(--inv);stroke-width:12;stroke-linecap:round;stroke-linejoin:round}
 .mapcanvas .rwalk{fill:none;stroke:var(--ts);stroke-width:8;stroke-dasharray:4 14;stroke-linecap:round}
-.mk-step{transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#fafafa;border:2px solid #0a0a0a}
-.mk-step.on{width:22px;height:22px;background:#0a0a0a;color:#fafafa;border-color:#fafafa;box-shadow:0 0 0 2px #0a0a0a;font:700 11px/18px "Noto Sans KR",sans-serif;text-align:center}
-.mk.mk-stop{font-size:11px;padding:2px 7px;background:#fafafa}
+.mk-step{transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;background:#f4f3ef;border:2px solid #0a0a0a}
+.mk-step.on{width:22px;height:22px;background:#0a0a0a;color:#f4f3ef;border-color:#f4f3ef;box-shadow:0 0 0 2px #0a0a0a;font:700 11px/18px "Noto Sans KR",sans-serif;text-align:center}
+.mk.mk-stop{font-size:11px;padding:2px 7px;background:#f4f3ef}
 .netbar{flex:none;display:flex;align-items:center;gap:6px;padding:8px max(20px,env(safe-area-inset-left,0px));background:var(--inv);color:var(--on-inv);font-size:12px;font-weight:500}
 .rsum{display:flex;align-items:baseline;gap:8px}
 .rsum b{font-size:22px;font-variant-numeric:tabular-nums}
@@ -151,12 +152,12 @@ textarea.input{min-height:110px;resize:vertical}
 .rsteps .grow{display:flex;flex-direction:column;gap:2px;min-width:0}
 .rsteps .rno{flex:none;width:18px;font-size:11px;color:var(--ts);font-variant-numeric:tabular-nums}
 .rsteps .leg-walk{color:var(--ts)}
-.on>.mk,.mk.on{background:#0a0a0a;color:#fafafa;outline:3px solid #fafafa;outline-offset:-1px}
+.on>.mk,.mk.on{background:#0a0a0a;color:#f4f3ef;outline:3px solid #f4f3ef;outline-offset:-1px}
 .mk.mk-shop{font-size:11px;padding:2px 7px}
-.mk-n{display:inline-block;margin-left:5px;padding:0 5px;border-radius:999px;background:#0a0a0a;color:#fafafa;font-size:10px;line-height:15px;vertical-align:1px}
-.mk-subway .mk-n,.mk-dome .mk-n,.mk.on .mk-n{background:#fafafa;color:#0a0a0a}
-.mk-dot{transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#fafafa;border:2px solid #0a0a0a;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.mk-list{display:flex;flex-direction:column;max-height:180px;overflow:auto;min-width:160px;background:#fafafa;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);font-family:"Noto Sans KR",sans-serif}
+.mk-n{display:inline-block;margin-left:5px;padding:0 5px;border-radius:999px;background:#0a0a0a;color:#f4f3ef;font-size:10px;line-height:15px;vertical-align:1px}
+.mk-subway .mk-n,.mk-dome .mk-n,.mk.on .mk-n{background:#f4f3ef;color:#0a0a0a}
+.mk-dot{transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#f4f3ef;border:2px solid #0a0a0a;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.mk-list{display:flex;flex-direction:column;max-height:180px;overflow:auto;min-width:160px;background:#f4f3ef;color:#0a0a0a;border:2px solid #0a0a0a;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);font-family:"Noto Sans KR",sans-serif}
 .mk-list button{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;text-align:left;font-size:13px;color:inherit;background:none;border:0;border-bottom:1px solid #e5e5e5;cursor:pointer}
 .mk-list button:last-child{border-bottom:0}
 .mk-list span{color:#737373;font-size:12px;white-space:nowrap}
@@ -186,7 +187,7 @@ textarea.input{min-height:110px;resize:vertical}
 .stage3d canvas{display:block;width:100%;height:100%;cursor:grab}
 .stage3d .ov{position:absolute;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
 .ovb{background:rgba(250,250,250,.92);color:#0a0a0a;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:500}
-.ovb[aria-pressed="true"]{background:#0a0a0a;color:#fafafa;box-shadow:0 0 0 1px rgba(250,250,250,.5)}
+.ovb[aria-pressed="true"]{background:#0a0a0a;color:#f4f3ef;box-shadow:0 0 0 1px rgba(250,250,250,.5)}
 .stage3d .msg{position:absolute;inset:0;display:grid;place-items:center;color:#a3a3a3;font-size:13px;text-align:center;padding:20px}
 .map{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px}
 .map svg{width:100%;height:auto;display:block}
@@ -349,8 +350,8 @@ function crowd(scene,areas,seed,{gap=0.8,hmin=1.5,hmax=1.85,avoid=null,y=0}={}){
 function screenMat(){return new THREE.MeshBasicMaterial({color:0xe9e9e9,side:THREE.DoubleSide});}
 function label(text,{dark=false,w=128}={}){
  const c=document.createElement('canvas');c.width=w*2;c.height=96;const x=c.getContext('2d');
- x.fillStyle=dark?'#0a0a0a':'#fafafa';const r=40;x.beginPath();x.moveTo(r,4);x.arcTo(c.width-4,4,c.width-4,92,r);x.arcTo(c.width-4,92,4,92,r);x.arcTo(4,92,4,4,r);x.arcTo(4,4,c.width-4,4,r);x.fill();
- x.fillStyle=dark?'#fafafa':'#0a0a0a';x.font='700 44px "Noto Sans KR", sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(text,c.width/2,50);
+ x.fillStyle=dark?'#0a0a0a':'#f4f3ef';const r=40;x.beginPath();x.moveTo(r,4);x.arcTo(c.width-4,4,c.width-4,92,r);x.arcTo(c.width-4,92,4,92,r);x.arcTo(4,92,4,4,r);x.arcTo(4,4,c.width-4,4,r);x.fill();
+ x.fillStyle=dark?'#f4f3ef':'#0a0a0a';x.font='700 44px "Noto Sans KR", sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(text,c.width/2,50);
  const t=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,depthTest:false,transparent:true}));s.renderOrder=10;s.userData.aspect=c.width/c.height;return s;}
 
 function buildBowl(scene,{hi=null,avoid=null}={}){
@@ -744,7 +745,7 @@ function mountMap(el,{kinds,focus=null,onFocus,filter=null}){
     if(!r||r.status!=='ok'||r.pid!==focus)return false;
     const LL=a=>new naver.maps.LatLng(a[0],a[1]),b=new naver.maps.LatLngBounds();
     routeSegs(r).forEach(s=>{if(s.pts.length<2)return;const path=s.pts.map(LL);path.forEach(x=>b.extend(x));const w=s.k==='walk';
-     rOv.push(new naver.maps.Polyline({map,path,strokeColor:'#fafafa',strokeWeight:w?7:10,strokeOpacity:1,strokeLineCap:'round',strokeLineJoin:'round'}));
+     rOv.push(new naver.maps.Polyline({map,path,strokeColor:'#f4f3ef',strokeWeight:w?7:10,strokeOpacity:1,strokeLineCap:'round',strokeLineJoin:'round'}));
      rOv.push(new naver.maps.Polyline({map,path,strokeColor:w?'#525252':'#0a0a0a',strokeWeight:w?4:6,strokeOpacity:1,strokeStyle:w?'shortdot':'solid',strokeLineCap:'round',strokeLineJoin:'round'}));});
     routeMarks(r).forEach(m=>rOv.push(new naver.maps.Marker({position:LL([m.lat,m.lng]),map,zIndex:120,icon:{content:m.html,anchor:new naver.maps.Point(0,0)}})));
     if(fit){if(meMk&&r.from!=='dome')b.extend(meMk.getPosition());map.fitBounds(b,{top:40,right:30,bottom:40,left:30});}return true;};
@@ -891,8 +892,8 @@ home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const lis
   <div class="card line board">${offs.map(o=>`<a class="brow" href="${esc(o.url)}" target="_blank" rel="noopener"><span class="tag">${esc(o.cat)}</span><span class="grow"><b>${esc(o.title)}</b><span class="t-cap">${esc(o.src)}${o.date?`, ${o.date}`:''}</span></span>${ic('chevron-right',18)}</a>`).join('')}</div>
   <span class="t-cap">공식 기관과 예매처 글의 제목, 출처, 링크만 모았어요. 내용은 원문에서 확인해 주세요 (2026-11-14 확인)</span>`
   :`<div class="card" style="gap:6px">${ic('box',24)}<span class="t-sm">이 공연장의 공식 안내는 준비 중이에요</span></div>`}`;
- /* 홈 순서: 내 티켓(없으면 등록 안내 + 둘러보기) → 공연 일정 배너 → 커뮤니티 새 글 → 공식 안내.
-    예매한 뒤 쓰는 앱이라 내 공연이 맨 위. 공연 당일이 아니면 "관람 준비", 당일이면 "오늘 할 일" */
+ /* 홈 순서(2026-11-17): 운영자 공지 → 공연 일정 배너 → 내 티켓(없으면 등록 안내) → 커뮤니티 새 글 → 공식 안내 → 공연장 둘러보기.
+    내 티켓: 공연 당일이 아니면 "관람 준비", 당일이면 "오늘 할 일" */
  let main;
  if(t){const isToday=sh.ymd===today,isPast=sh.ymd<today;
   main=`<div class="card inv" style="padding:20px;gap:6px">
@@ -907,22 +908,23 @@ home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const lis
   ${row('귀가 안내',`${sh.end?`구일역 도착 약 ${addMin(sh.end,23)}`:'종료 시각 공지 전'}, 귀가 알림 ${S.alarm?'켜짐 (종료 30분, 10분 전)':'꺼짐'}`,'train','move')}
   ${isToday&&!OFF.at&&S.venue==='gocheok'?`<button class="row" data-act="offsave" ${NET.busy?'disabled':''}>${ic('download',22)}<span class="grow"><b>공연장 들어가기 전에 저장</b><span class="t-sm">${NET.busy?'저장 중':'데이터가 안 터져도 이동, 공연장 정보를 볼 수 있어요'}</span></span>${ic('chevron-right',20)}</button>`:''}
   ${isToday?'<div class="card line" style="padding:14px;gap:4px"><b style="font-size:13px">오늘 날씨</b><span class="t-sm">맑음, 저녁 8℃. 귀갓길 겉옷 챙기기</span><span class="t-cap">기상청 단기예보 (예시 값)</span></div>':''}`;}
- else{main=`<div class="row" style="padding:14px;gap:12px">${ic('ticket',22)}<span class="grow"><b style="font-size:14px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b><span class="t-cap">티켓을 등록하면 내 좌석 기준으로 안내해요</span></span><button class="tag" data-go="ticket">티켓 등록</button></div>
-  <h2>공연장 둘러보기</h2>
+ else{main=`<div class="row" style="padding:14px;gap:12px">${ic('ticket',22)}<span class="grow"><b style="font-size:14px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b><span class="t-cap">티켓을 등록하면 내 좌석 기준으로 안내해요</span></span><button class="tag" style="background:var(--card);border:1px solid var(--border);font-weight:500" data-go="ticket">티켓 등록</button></div>`;}
+ const browse=`<h2>공연장 둘러보기</h2>
   ${row('좌석 시야 보기','구역별 무대 시야와 후기','eye','sight')}
   ${row('출입문과 편의시설','출입문, 매점, 화장실, 주변 상가','pin','place')}
   ${row('오는 길과 귀갓길','지하철, 버스, 주차, 덜 붐비는 역','train','move')}
-  ${row('커뮤니티','시야 후기, 동행, 공연 정보','chat','comm')}`;}
+  ${row('커뮤니티','시야 후기, 동행, 공연 정보','chat','comm')}`;
  const news=allComm().filter(p=>canSee(p)&&(p.tab!=='동행'||isCert())).slice(0,3);
  const comm=news.length?`<h2>커뮤니티 새 글</h2>${news.map(cRow).join('')}<button class="btn secondary" data-go="comm">커뮤니티 더 보기</button>`:'';
  return hdr(v.name,{venue:true,bell:true})+`<div class="body">
   ${DD().notices.filter(n=>n.on).map(n=>`<div class="row" style="background:var(--card);border:1px solid var(--bstrong);padding:12px 14px;gap:10px">${ic('bell',18)}<span class="grow" style="font-size:13px;font-weight:500">${esc(n.title)}</span><span class="t-cap">운영자 공지</span></div>`).join('')}
   ${standing()?'<span class="t-acc">확장 예시 화면이에요. 공연 목록은 예시 값</span>':''}
-  ${main}
   ${banner}
+  <span class="t-cap">공연 정보 출처: 주최 측 공식 발표 보도 (KOPIS 연동 예정). 시간이 비어 있으면 공식 공지 확인 전이에요</span>
+  ${main}
   ${comm}
   ${board}
-  <span class="t-cap">공연 정보 출처: 주최 측 공식 발표 보도 (KOPIS 연동 예정). 시간이 비어 있으면 공식 공지 확인 전이에요</span>
+  ${browse}
  </div>`+tabbar('home');},
 
 ticket:()=>{
