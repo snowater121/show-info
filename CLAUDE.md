@@ -28,7 +28,7 @@
 
 한 개의 IIFE 안에 아래 순서로 있다.
 
-1. **CSS 토큰** `:root` (라이트, 흰색은 오프화이트 `#f4f3ef` 계열로 눈부심 줄임) + `prefers-color-scheme: dark`와 `[data-theme="dark"]` (다크). 값은 Figma "Theme" 변수 컬렉션과 동일. 색은 반드시 토큰으로만 쓸 것
+1. **CSS 토큰** `:root` (라이트. 배경은 `#fafafa` 그대로, 하얀색이던 부분(카드, 탭 바, 검은 면 위 글자, 다크 모드 글자)만 오프화이트 `#f4f3ef` 계열. 홈 공지는 개조식 한 줄씩) + `prefers-color-scheme: dark`와 `[data-theme="dark"]` (다크). 값은 Figma "Theme" 변수 컬렉션과 동일. 색은 반드시 토큰으로만 쓸 것
 2. **ICONS / ic()**: lucide 계열 SVG path. 새 아이콘도 같은 방식으로 추가
 3. **데이터**
    - `SHOWS`: 공연 목록. `real:true`는 실제 공연, `done:true`는 종료 공연, `ymd`로 오늘, D-n, 종료 표시. `start/open/end`가 null이면 화면에 "확인 필요"로 나옴(지어내지 말 것)

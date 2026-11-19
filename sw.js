@@ -5,7 +5,7 @@
  * - three.js, 글꼴: 저장본 먼저 (버전이 고정된 파일)
  * - 네이버 지도, Tmap, ODsay 같은 외부 API는 건드리지 않는다 (지도 타일은 저장하지 않음, 오프라인이면 약도로 대체)
  * 앱 파일을 바꿨을 때 VERSION을 올리면 예전 저장본을 지운다 */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE = 'show-info-' + VERSION;
 const SHELL = ['./', 'index.html', 'admin.html', 'config.js', 'store.js', 'data/shops.json'];
 const LIBS = [
@@ -34,7 +34,8 @@ function networkFirst(req) {
     let done = false;
     const fallback = () => c.match(key).then(hit => hit || (req.mode === 'navigate' ? c.match('index.html') : null));
     const timer = setTimeout(() => fallback().then(hit => { if (hit && !done) { done = true; resolve(hit); } }), 3000);
-    fetch(req).then(res => {
+    /* 브라우저 HTTP 캐시에 남은 예전 파일을 받지 않도록 매번 서버에 확인한다 (바뀐 게 없으면 304로 가볍게 끝남) */
+    fetch(req.mode === 'navigate' ? new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : new Request(req, { cache: 'no-cache' })).then(res => {
       if (res.ok) c.put(key, res.clone());
       clearTimeout(timer);
       if (!done) { done = true; resolve(res); }

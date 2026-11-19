@@ -324,7 +324,7 @@ function stats(){const d=D();
   <div class="card"><h2>최근 7일 접수 (신청, 글, 시야, 신고, 제보)</h2><div class="bars">${days.map((t,i)=>`<div><span class="num">${cnt[i]}</span><i style="height:${Math.round(cnt[i]/mx*100)}%"></i><span>${t.getMonth()+1}/${t.getDate()}</span></div>`).join('')}</div></div>
   <div class="card"><h2>공지</h2>
    ${d.notices.map(n=>`<div class="row" style="padding:8px 0;border-top:1px solid var(--border)"><span style="flex:1;min-width:0">${esc(n.title)}</span><label class="check"><input type="checkbox" data-a="notice" data-id="${n.id}" ${n.on?'checked':''}>앱 홈에 보이기</label><button class="btn s soft" data-a="noticeDel" data-id="${n.id}">지우기</button></div>`).join('')||'<span class="sm">공지가 없어요</span>'}
-   <div class="row"><input id="n-title" class="input" style="flex:1" maxlength="60" placeholder="새 공지 한 줄"><button class="btn primary" data-a="noticeAdd">올리기</button></div>
+   <div class="row"><input id="n-title" class="input" style="flex:1" maxlength="60" placeholder="새 공지 한 줄, 개조식 (예: 공연 당일 주차 불가)"><button class="btn primary" data-a="noticeAdd">올리기</button></div>
   </div>
  </div>
  <div class="grid g2">

@@ -71,7 +71,7 @@
       bookmarks: {}, /* uid: [post id] */
       words: ['양도', '팝니다', '삽니다', '구매합니다', '계좌', '입금', '선입금'],
       notices: [
-        { id: 'n1', title: '공연 당일 고척돔 주차장은 일반 주차가 안 돼요', at: t - 48 * H, on: true }
+        { id: 'n1', title: '공연 당일 고척돔 주차장 일반 주차 불가', at: t - 48 * H, on: true }
       ],
       settings: { sightManual: false },
       logs: [
@@ -84,6 +84,8 @@
   function load() {
     try { const raw = localStorage.getItem(KEY); D = raw ? JSON.parse(raw) : null; } catch (e) { D = null; }
     if (!D || D.v !== VER) { D = seed(); write(); }
+    /* 예전 저장본의 예시 공지를 개조식 문구로 (2026-11-18) */
+    (D.notices || []).forEach(n => { if (n.id === 'n1' && n.title === '공연 당일 고척돔 주차장은 일반 주차가 안 돼요') { n.title = '공연 당일 고척돔 주차장 일반 주차 불가'; write(); } });
     return D;
   }
   function write() {

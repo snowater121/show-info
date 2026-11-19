@@ -13,11 +13,11 @@
 <style>
 /* Layout: one phone-width app column, header on top, scrolling body, tab bar fixed at the bottom. Tokens = Figma "Theme" collection */
 :root{
-  /* 흰색은 눈부시지 않게 살짝 따뜻한 오프화이트로 (2026-11-17) */
-  --bg:#f4f3ef;--card:#f9f8f5;--muted:#ebeae5;--ph:#e1e0da;--inv:#0a0a0a;
-  --border:#e1e0da;--bstrong:#0a0a0a;--tp:#0a0a0a;--ts:#525252;
+  /* 배경은 그대로, 하얀색이던 부분(카드, 탭 바, 검은 면 위 글자)만 오프화이트로 (2026-11-18) */
+  --bg:#fafafa;--card:#f6f5f0;--muted:#f0f0f0;--ph:#e5e5e5;--inv:#0a0a0a;
+  --border:#e5e5e5;--bstrong:#0a0a0a;--tp:#0a0a0a;--ts:#525252;
   --on-inv:#f4f3ef;--on-inv-m:#a3a3a3;--focus:#737373;--icon-ph:#8a8a8a;
-  --desk:#e4e3de;--mid:#a3a3a3;
+  --desk:#e9e9e9;--mid:#a3a3a3;
   --font:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -172,6 +172,8 @@ textarea.input{min-height:110px;resize:vertical}
 .bn-date{font-size:13px;font-weight:500;color:var(--on-inv-m);font-variant-numeric:tabular-nums}
 .bn-name{font-size:19px;line-height:1.35}
 .bn-meta{font-size:12px;color:var(--on-inv-m)}
+.notice{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--bstrong);border-radius:12px;padding:12px 14px}
+.notice ul{margin:0;padding:0 0 0 16px;display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500;flex:1;min-width:0}
 .bn-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
 .bn-dots{display:flex;gap:6px;flex:none}
 .bn-dots button{width:7px;height:7px;border-radius:4px;background:var(--ph);padding:0;transition:width .2s}
@@ -646,7 +648,7 @@ async function saveOffline(){
 function offCard(){const n=Object.keys(OFF.routes||{}).length;
  if(NET.busy)return `<div class="row" style="padding:12px 14px;gap:10px">${ic('download',20)}<span class="grow"><b style="font-size:14px">오프라인 저장 중</b><span class="t-cap">앱 화면과 돔 출발 경로를 받고 있어요</span></span></div>`;
  if(OFF.at)return `<div class="row" style="padding:12px 14px;gap:10px">${ic('download',20)}<span class="grow"><b style="font-size:14px">오프라인 저장됨, ${esc(fmtSaved(OFF.at))}</b><span class="t-cap">앱 화면, 공연장 정보, 상가 ${shopsOf('gocheok').length}곳, 돔에서 역까지 도보 경로 ${n}개. 데이터가 안 터져도 볼 수 있어요</span></span><button class="tag" data-act="offsave">다시 저장</button></div>`;
- return `<div class="card line" style="gap:8px"><b style="font-size:14px">공연장 가기 전에 오프라인 저장</b><span class="t-sm">공연장 안은 인파가 몰리면 데이터가 잘 안 터져요. 미리 저장하면 이동, 공연장 정보와 돔에서 역까지 가는 길을 인터넷 없이 볼 수 있어요</span><button class="btn primary" data-act="offsave">${ic('download',18)}&nbsp;오프라인 저장하기</button><span class="t-cap">지도는 오프라인이면 약도로 보여요. 내 위치에서 출발하는 새 경로는 인터넷이 있어야 받아요</span></div>`;}
+ return `<div class="card line" style="gap:8px"><b style="font-size:14px">공연장 가기 전에 오프라인 저장</b><button class="btn primary" data-act="offsave">${ic('download',18)}&nbsp;오프라인 저장하기</button><span class="t-cap">인터넷이 끊기면 지도는 약도로 보여 드려요. 내 위치에서 출발하는 새 경로는 인터넷에 연결되어 있을 때 받아 주세요</span></div>`;}
 const netbar=()=>`<div class="netbar" id="netbar" role="status" ${NET.on?'hidden':''}>${ic('wifi-off',16)}<span>오프라인이에요. ${OFF.at?`${esc(fmtSaved(OFF.at))}에 저장한 정보로 보여요`:'처음 열 때 저장된 정보로 보여요'}</span></div>`;
 function setNet(on){NET.on=on;const b=document.getElementById('netbar');if(b)b.outerHTML=netbar();
  if(on&&NAV.state==='fail'&&NAV.off){NAV.state='idle';NAV.off=false;}
@@ -884,13 +886,13 @@ home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const lis
    <span class="bn-date">${s.date} (${s.dow})</span>
    <b class="bn-name">${esc(s.name)}</b>
    <span class="bn-meta">${s.start?`${s.start} 시작`:'시간 확인 필요'}${s.end?`, ${s.end} 종료`:''}, 예매처 ${esc(s.seller)}</span></article>`).join('')}</div>
-  <div class="bn-foot"><span class="t-cap">이번 달 ${esc(v.name)} 공연 ${list.length}개, 옆으로 넘겨 보기</span><span class="bn-dots">${list.map((s,i)=>`<button data-bn="${i}" aria-label="${i+1}번째 공연" aria-current="${i===first}"></button>`).join('')}</span></div>
+  <div class="bn-foot"><span></span><span class="bn-dots">${list.map((s,i)=>`<button data-bn="${i}" aria-label="${i+1}번째 공연" aria-current="${i===first}"></button>`).join('')}</span></div>
  </section>`;
  const offAll=OFFICIAL[S.venue]||[];const ocats=OFFICIAL_CATS.filter(c=>c==='전체'||offAll.some(o=>o.cat===c));if(!ocats.includes(ui.ocat))ui.ocat='전체';
  const offs=offAll.filter(o=>ui.ocat==='전체'||o.cat===ui.ocat);
  const board=`<h2>공식 안내</h2>${offAll.length?`${chips(ocats,ui.ocat,'ocat')}
   <div class="card line board">${offs.map(o=>`<a class="brow" href="${esc(o.url)}" target="_blank" rel="noopener"><span class="tag">${esc(o.cat)}</span><span class="grow"><b>${esc(o.title)}</b><span class="t-cap">${esc(o.src)}${o.date?`, ${o.date}`:''}</span></span>${ic('chevron-right',18)}</a>`).join('')}</div>
-  <span class="t-cap">공식 기관과 예매처 글의 제목, 출처, 링크만 모았어요. 내용은 원문에서 확인해 주세요 (2026-11-14 확인)</span>`
+`
   :`<div class="card" style="gap:6px">${ic('box',24)}<span class="t-sm">이 공연장의 공식 안내는 준비 중이에요</span></div>`}`;
  /* 홈 순서(2026-11-17): 운영자 공지 → 공연 일정 배너 → 내 티켓(없으면 등록 안내) → 커뮤니티 새 글 → 공식 안내 → 공연장 둘러보기.
     내 티켓: 공연 당일이 아니면 "관람 준비", 당일이면 "오늘 할 일" */
@@ -908,7 +910,7 @@ home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const lis
   ${row('귀가 안내',`${sh.end?`구일역 도착 약 ${addMin(sh.end,23)}`:'종료 시각 공지 전'}, 귀가 알림 ${S.alarm?'켜짐 (종료 30분, 10분 전)':'꺼짐'}`,'train','move')}
   ${isToday&&!OFF.at&&S.venue==='gocheok'?`<button class="row" data-act="offsave" ${NET.busy?'disabled':''}>${ic('download',22)}<span class="grow"><b>공연장 들어가기 전에 저장</b><span class="t-sm">${NET.busy?'저장 중':'데이터가 안 터져도 이동, 공연장 정보를 볼 수 있어요'}</span></span>${ic('chevron-right',20)}</button>`:''}
   ${isToday?'<div class="card line" style="padding:14px;gap:4px"><b style="font-size:13px">오늘 날씨</b><span class="t-sm">맑음, 저녁 8℃. 귀갓길 겉옷 챙기기</span><span class="t-cap">기상청 단기예보 (예시 값)</span></div>':''}`;}
- else{main=`<div class="row" style="padding:14px;gap:12px">${ic('ticket',22)}<span class="grow"><b style="font-size:14px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b><span class="t-cap">티켓을 등록하면 내 좌석 기준으로 안내해요</span></span><button class="tag" style="background:var(--card);border:1px solid var(--border);font-weight:500" data-go="ticket">티켓 등록</button></div>`;}
+ else{main=`<div class="row" style="padding:14px;gap:12px">${ic('ticket',22)}<span class="grow"><b style="font-size:14px">${standing()?'이 공연장에 등록된 티켓이 없어요':'등록된 관람 예정 공연이 없어요'}</b></span><button class="tag" style="background:var(--card);border:1px solid var(--border);font-weight:500" data-go="ticket">티켓 등록</button></div>`;}
  const browse=`<h2>공연장 둘러보기</h2>
   ${row('좌석 시야 보기','구역별 무대 시야와 후기','eye','sight')}
   ${row('출입문과 편의시설','출입문, 매점, 화장실, 주변 상가','pin','place')}
@@ -917,10 +919,9 @@ home:()=>{const v=V();const t=standing()?null:S.ticket;const sh=show();const lis
  const news=allComm().filter(p=>canSee(p)&&(p.tab!=='동행'||isCert())).slice(0,3);
  const comm=news.length?`<h2>커뮤니티 새 글</h2>${news.map(cRow).join('')}<button class="btn secondary" data-go="comm">커뮤니티 더 보기</button>`:'';
  return hdr(v.name,{venue:true,bell:true})+`<div class="body">
-  ${DD().notices.filter(n=>n.on).map(n=>`<div class="row" style="background:var(--card);border:1px solid var(--bstrong);padding:12px 14px;gap:10px">${ic('bell',18)}<span class="grow" style="font-size:13px;font-weight:500">${esc(n.title)}</span><span class="t-cap">운영자 공지</span></div>`).join('')}
+  ${(ns=>ns.length?`<div class="notice">${ic('bell',18)}<ul>${ns.map(n=>`<li>${esc(n.title)}</li>`).join('')}</ul></div>`:'')(DD().notices.filter(n=>n.on))}
   ${standing()?'<span class="t-acc">확장 예시 화면이에요. 공연 목록은 예시 값</span>':''}
   ${banner}
-  <span class="t-cap">공연 정보 출처: 주최 측 공식 발표 보도 (KOPIS 연동 예정). 시간이 비어 있으면 공식 공지 확인 전이에요</span>
   ${main}
   ${comm}
   ${board}
@@ -978,10 +979,9 @@ sight:()=>{const sh=show();const hall=standing();const vkey=S.venue;
   <div class="map">${svg}</div>
   <div class="legend"><span><i style="background:var(--mid)"></i>후기 5개 이상</span><span><i style="background:var(--ph)"></i>후기 1~4개</span><span><i style="background:var(--muted);box-shadow:inset 0 0 0 1px var(--border)"></i>예상 시야만</span>${my&&!hall?'<span><i style="box-shadow:inset 0 0 0 2px var(--inv)"></i>내 좌석</span>':''}</div>
   ${sel?`<div class="card line" style="gap:10px"><span style="display:flex;align-items:center;gap:8px"><b style="font-size:16px;flex:1">${esc(secLabel(sel))}</b><span class="t-sm">후기 ${cnt(sel)}개</span></span>${tags(secTags(sel))}<span class="t-sm">무대까지 약 ${stageDist(vkey,sel)}m (모형 기준)</span><button class="btn primary" data-act="view" data-s="${esc(sel)}">${ic('eye',18)}&nbsp;이 자리에서 무대 보기</button></div>`
-   :`<div class="card"><span class="t-sm">구조도에서 ${hall?'구역':'구역'}을 누르면 그 자리에서 본 무대를 3D로 볼 수 있어요</span></div>`}
+   :''}
   ${my&&!hall?row('내 좌석 바로 보기',S.ticket.floor+' '+S.ticket.zone+'구역 '+S.ticket.row+'열','ticket','myseat'):''}
   ${hall?'':row('내 좌석 시야 등록하기',tVer()?'선택, 인증된 티켓의 내 좌석 사진과 평가 올리기':'선택, 티켓을 인증한 관람객이 내 좌석만 올려요','image','upload')}
-  <span class="t-cap">구역 번호, 후기 수, 무대 위치는 예시 데이터예요</span>
  </div>`+tabbar('sight');},
 
 view:()=>{const sec=ui.sec;const vkey=S.venue;const hall=standing();const sh=show();
@@ -1037,7 +1037,6 @@ place:()=>{const hall=standing();const v=V();const t=S.ticket;const my=hall?null
   if(R3&&!hall)R3.setFloor(ui.f3);
   el.querySelectorAll('.ovb[data-f3n]').forEach(b=>b.addEventListener('click',ev=>{ev.stopPropagation();ui.f3=+b.dataset.f3n;el.querySelectorAll('.ovb[data-f3n]').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.f3n===ui.f3)));R3&&R3.setFloor(ui.f3);}));};
  const map3d=`<div class="stage3d" id="p3d">${hall?'':`<div class="ov" style="left:10px;top:10px">${[['전체',0],['1층',1],['2층',2],['3층',3],['4층',4]].map(([l,n])=>`<button class="ovb" data-f3n="${n}" aria-pressed="${ui.f3===n}">${l}</button>`).join('')}</div>`}</div>
-  <span class="t-cap">드래그로 돌려 보고 표시를 누르면 설명이 나와요. ${hall?'구조와 위치는 예시예요':'출입문, 매점, 아기쉼터, 엘리베이터는 시설현황 기준이고 위치는 예시예요'}</span>
   <div class="card line" id="pinfo" style="gap:4px"><span class="t-sm">표시를 누르면 설명이 나와요</span></div>`;
  if(hall){return hdr('공연장')+`<div class="body" style="gap:12px">
   <span class="t-acc">${esc(v.name)}, 스탠딩 공연장 (확장 예시)</span>${map3d}
@@ -1046,7 +1045,7 @@ place:()=>{const hall=standing();const v=V();const t=S.ticket;const my=hall?null
   ${row('공연 후에도 여는 곳','주변 식당과 카페','store')}
  </div>`+tabbar('place');}
  let inner='';
- if(ui.vtab==='입장'){const sh=show();const oi=DB.openInfo(sh.id);inner=`<div class="card inv" style="padding:18px;gap:4px"><span class="m" style="font-size:12px;font-weight:500">${esc(sh.name)}, ${t?'내 좌석 기준 출입문':'티켓을 등록하면 내 좌석 기준으로 바뀌어요'}</span><span style="font-size:24px;font-weight:700">${sh.gate?esc(sh.gate)+' 출입문':'출입문 공지 전'}</span><span style="font-size:13px">입장 ${esc(oi.text)}${oi.est?' (예정)':''}${oi.src?', '+esc(oi.src):''}</span><span class="m" style="font-size:11px">${sh.gate?'운영자가 공연 공지를 보고 입력한 값이에요':'출입문은 공연마다 달라 운영자가 공지를 보고 입력해요'}${sh.note?'. '+esc(sh.note):''}</span></div>
+ if(ui.vtab==='입장'){const sh=show();const oi=DB.openInfo(sh.id);inner=`<div class="card inv" style="padding:18px;gap:4px"><span class="m" style="font-size:12px;font-weight:500">${esc(sh.name)}, ${t?'내 좌석 기준 출입문':'티켓을 등록하면 내 좌석 기준으로 바뀌어요'}</span><span style="font-size:24px;font-weight:700">${sh.gate?esc(sh.gate)+' 출입문':'출입문 공지 전'}</span><span style="font-size:13px">입장 ${esc(oi.text)}${oi.est?' (예정)':''}${oi.src?', '+esc(oi.src):''}</span><span class="m" style="font-size:11px">${sh.gate?'운영자가 공연 공지를 보고 입력한 값이에요':''}${sh.note?(sh.gate?'. ':'')+esc(sh.note):''}</span></div>
   <button class="btn secondary" data-mapgo="subway" data-mf="guil">구일역에서 오는 길 지도로 보기</button>
   ${row('가까운 화장실, 매점',t?`${t.floor} ${t.zone}구역 뒤쪽`:'좌석을 등록하면 보여요','toilet')}
   <button class="row" data-act="shops" data-scat="전체">${ic('store',22)}<span class="grow"><b>주변 편의점, 식당, 카페</b><span class="t-sm">${shopsOf(S.venue).length?`반경 ${SHOPDATA.radius}m 안 ${shopsOf(S.venue).length}곳, 내 위치에서 길 안내`:'상가 목록을 불러오는 중'}</span></span>${ic('chevron-right',20)}</button>`;}
@@ -1070,7 +1069,7 @@ move:()=>{const sh=show();const arr=sh.end?addMin(sh.end,23):null;
  const total=list.length;if(isShop)list=list.slice(0,ui.slim);
  const shown=new Set(list.map(p=>p.id));
  const locCard=ui.me?`<div class="row" style="padding:12px 14px;gap:10px">${ic('locate',20)}<span class="grow"><b style="font-size:14px">내 위치 기준으로 보는 중</b><span class="t-cap">가까운 순으로 정렬했어요. 정확도 약 ${fmtDist(ui.me.acc||0)}, 위치는 저장하지 않아요</span></span><button class="tag" data-act="locate">다시 찾기</button></div>`
-  :`<div class="card line" style="gap:8px"><b style="font-size:14px">내 위치에서 길 안내</b><span class="t-sm">위치를 허용하면 가까운 순으로 보여 주고, 고른 곳까지 네이버 지도로 길 안내를 시작해요</span><button class="btn primary" data-act="locate" ${ui.locBusy?'disabled':''}>${ic('locate',18)}&nbsp;${ui.locBusy?'내 위치 찾는 중':'내 위치 허용하기'}</button>${ui.locErr?`<span class="err">${esc(ui.locErr)}</span>`:''}<span class="t-cap">위치는 길 안내에만 쓰고 저장하지 않아요</span></div>`;
+  :`<div class="card line" style="gap:8px"><b style="font-size:14px">내 위치에서 길 안내</b><span class="t-sm">위치를 허용하면 가까운 순으로 보여 주고, 고른 곳까지 네이버 지도로 길 안내를 시작해요</span><button class="btn primary" data-act="locate" ${ui.locBusy?'disabled':''}>${ic('locate',18)}&nbsp;${ui.locBusy?'내 위치 찾는 중':'내 위치 허용하기'}</button>${ui.locErr?`<span class="err">${esc(ui.locErr)}</span>`:''}</div>`;
  const tail=p=>{const d=myDist(p);return p.kind==='near'?ic('search',18):d!=null?`<span class="t-sm" style="color:var(--tp);font-weight:700;font-variant-numeric:tabular-nums">${fmtDist(d)}</span>`:p.kind==='shop'?`<span class="t-sm" style="font-variant-numeric:tabular-nums">돔 ${fmtDist(p.dv)}</span>`:p.lat==null?'<span class="tag">위치 확인 필요</span>':ic('pin',18);};
  const kindIc=k=>k==='subway'?'train':k==='bus'?'bus':(k==='near'||k==='shop')?'store':'car';
  if(!list.some(p=>p.id===ui.mfocus))ui.mfocus=list[0]?list[0].id:null;
@@ -1116,7 +1115,7 @@ comm:()=>{const sh=show();const cert=isCert();
   if(cert)act='<button class="btn primary" data-act="cwrite" data-wtab="동행">동행 구하기 글쓰기</button>';}
  else{inner=`${row('MD 현황','품목, 상태, 대기시간 제보 (30분 지나면 흐리게)','box')}${row('공연 공지','입장 시각, 반입 금지 물품','bell')}<h2 style="font-size:15px">이용자 글</h2>${posts('공연 정보')}`;
   act='<button class="btn primary" data-act="cwrite" data-wtab="공연 정보">글쓰기</button>';}
- return hdr('커뮤니티')+`<div class="body" style="gap:12px">${member}${chips(['시야 후기','동행','공연 정보'],ui.ctab,'ctab')}${inner}<span class="t-cap">북마크한 글은 마이페이지의 저장한 글에서 모아 봐요. 연락처, 양도 글은 신고해 주세요</span><div class="spacer"></div>${act}</div>`+tabbar('comm');},
+ return hdr('커뮤니티')+`<div class="body" style="gap:12px">${member}${chips(['시야 후기','동행','공연 정보'],ui.ctab,'ctab')}${inner}<div class="spacer"></div>${act}</div>`+tabbar('comm');},
 
 cwrite:()=>{const cert=isCert();const tab=ui.wtab||'공연 정보';const vis=cert?ui.wvis:'all';
  return hdr(tab==='동행'?'동행 구하기 글쓰기':'글쓰기',{backBtn:true})+`<div class="body" style="gap:12px">
