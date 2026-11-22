@@ -162,7 +162,7 @@ const mask=p=>p?String(p).replace(/^(\d{3})-?\d{3,4}-?(\d{4})$/,'$1-****-$2'):'�
 let toastT;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2000);}
 
 const PAGES=[['dash','대시보드','home','A-01'],['shows','공연 관리','ticket','A-02'],['seats','좌석 템플릿','grid','A-03'],['verifs','회원 인증 검수','user','A-04'],['sights','시야 사진 검수','image','A-05'],['reports','신고 처리','flag','A-06'],['places','장소 정보 관리','pin','A-07'],['stats','통계와 설정','chart','A-08']];
-const ui={sel:{},tab:{verifs:'대기',sights:'보류',reports:'접수',places:'주차장'},resetArm:false,chk:{}};
+const ui={draft:{},sel:{},tab:{verifs:'대기',sights:'보류',reports:'접수',places:'주차장'},resetArm:false,chk:{}};
 const page=()=>{const h=location.hash.replace('#/','');return PAGES.some(p=>p[0]===h)?h:'dash';};
 
 const HOLD=s=>['AI 보류','AI 확인 중','숨김'].includes(s.status);
@@ -172,7 +172,10 @@ function counts(){const d=D();return{
  reports:d.reports.filter(r=>r.status==='접수').length,
  places:d.infos.filter(x=>x.status==='대기').length,
  seats:d.zoneCands.filter(z=>z.status==='대기').length,
- shows:B.SHOWS.filter(s=>!s.done&&!(DB.show(s.id).gate)).length};}
+ shows:B.SHOWS.filter(s=>!s.done&&(!DB.show(s.id).gate||!DB.seats(s.id).confirmed)).length};}
+/* 플로어 블록 미리보기. closed에 든 블록은 흐리게 (판매 안 함) */
+function floorSvg(closed,floor,label){const blocks='ABCDEFGHIJKL'.split('');const off=new Set(closed||[]);const none=floor==='판매 안 함';
+ return `<svg viewBox="-60 -10 120 96" role="img" aria-label="${esc(label||'플로어 배치')}" style="width:100%;max-height:240px"><rect x="-26" y="-6" width="52" height="10" rx="2" fill="var(--inv)"/><text x="0" y="1" text-anchor="middle" font-size="5" fill="var(--on-inv)" font-family="var(--font)" font-weight="700">무대</text>${blocks.map((b,i)=>{const x=-25+(i%3)*17,y=10+Math.floor(i/3)*17;const c=none||off.has('F'+b);return `<rect x="${x}" y="${y}" width="15" height="15" rx="2" fill="${c?'var(--bg)':'var(--ph)'}" stroke="${c?'var(--border)':'none'}" stroke-width=".6"/><text x="${x+7.5}" y="${y+9.5}" text-anchor="middle" font-size="5" fill="${c?'var(--ts)':'var(--tp)'}" font-family="var(--font)" font-weight="700">${c?'×':b}</text>`;}).join('')}<path d="M-56 4 A60 60 0 0 0 -40 80 M56 4 A60 60 0 0 1 40 80" stroke="var(--border)" stroke-width="6" fill="none"/></svg>`;}
 
 function side(){const c=counts();const cur=page();
  return `<div class="logo"><b>[앱 이름]</b><span>운영자 관리</span></div>`+PAGES.map(([k,l,i])=>`<a class="nav" href="#/${k}" ${k===cur?'aria-current="page"':''}>${ic(i,18)}<span>${l}</span>${c[k]?`<span class="n">${c[k]}</span>`:''}</a>`).join('')+
@@ -200,15 +203,15 @@ function dash(){const d=D();const c=counts();
 /* ---------- A-02 공연 관리 ---------- */
 function shows(){const d=D();const id=ui.sel.shows||B.SHOWS.find(s=>!s.done).id;const s=DB.show(id);const o=d.shows[id]||{};const oi=DB.openInfo(id);
  return top('공연 관리','KOPIS 공연목록을 불러오고(연동 예정), 공지를 보고 입장 시각과 출입문을 입력해요')+`
- <div class="tw"><table class="tbl"><tr><th>공연</th><th>날짜</th><th>시작</th><th>입장</th><th>출입문</th><th>무대</th><th>상태</th></tr>
- ${B.SHOWS.map(x=>{const y=DB.show(x.id);const oo=DB.openInfo(x.id);return `<tr class="pick" data-pick="shows" data-id="${x.id}" aria-selected="${x.id===id}"><td><b>${esc(y.name)}</b>${y.real?'':' <span class="tag">예시</span>'}</td><td class="num">${y.date}(${y.dow})</td><td class="num">${y.start||'확인 필요'}</td><td class="num">${esc(oo.text)}${oo.est?' (예정)':''}</td><td>${esc(y.gate||'')}</td><td>${esc(y.template||'엔드 스테이지 A')}</td><td>${y.done?'<span class="tag line">종료</span>':y.gate?'<span class="tag">입력 완료</span>':'<span class="tag on">입력 필요</span>'}</td></tr>`;}).join('')}</table></div>
+ <div class="tw"><table class="tbl"><tr><th>공연</th><th>날짜</th><th>시작</th><th>입장</th><th>출입문</th><th>무대</th><th>좌석 수</th><th>상태</th></tr>
+ ${B.SHOWS.map(x=>{const y=DB.show(x.id);const oo=DB.openInfo(x.id);return `<tr class="pick" data-pick="shows" data-id="${x.id}" aria-selected="${x.id===id}"><td><b>${esc(y.name)}</b>${y.real?'':' <span class="tag">예시</span>'}</td><td class="num">${y.date}(${y.dow})</td><td class="num">${y.start||'확인 필요'}</td><td class="num">${esc(oo.text)}${oo.est?' (예정)':''}</td><td>${esc(y.gate||'')}</td><td>${esc(y.template||'엔드 스테이지 A')}</td><td class="num">${(sc=>sc.confirmed?sc.total.toLocaleString()+'석':'확인 필요')(DB.seats(x.id))}</td><td>${y.done?'<span class="tag line">종료</span>':y.gate&&DB.seats(x.id).confirmed?'<span class="tag">입력 완료</span>':'<span class="tag on">입력 필요</span>'}</td></tr>`;}).join('')}</table></div>
  <div class="grid g2">
   <div class="card"><h2>${esc(s.name)}</h2>
    <dl class="kv"><dt>날짜</dt><dd>${s.date}(${s.dow}), ${esc(s.seller)}</dd><dt>시작, 종료</dt><dd>${s.start||'확인 필요'} ~ ${s.end||'확인 필요'}</dd><dt>지금 앱 표시</dt><dd>입장 ${esc(oi.text)}${oi.est?' (예정)':''}${oi.src?', '+esc(oi.src):''}</dd></dl>
    <div class="grid g2" style="gap:12px">
     <div class="field"><label for="s-open">입장 시작 시각</label><input id="s-open" class="input" type="time" value="${esc(o.open||'')}"></div>
     <div class="field"><label for="s-gate">출입문</label><select id="s-gate" class="input"><option value="">공지 전</option>${B.GATES.map(g=>`<option ${o.gate===g?'selected':''}>${g}</option>`).join('')}</select></div>
-    <div class="field"><label for="s-tpl">무대 템플릿</label><select id="s-tpl" class="input">${B.TEMPLATES.map(g=>`<option ${(o.template||'엔드 스테이지 A')===g?'selected':''}>${g}</option>`).join('')}</select></div>
+    <div class="field"><label for="s-tpl">무대 템플릿</label><select id="s-tpl" class="input">${B.TEMPLATES.map(g=>`<option ${((ui.draft[id]||{}).tpl||o.template||'엔드 스테이지 A')===g?'selected':''}>${g}</option>`).join('')}</select></div>
     <div class="field"><label for="s-src">근거 (공지 출처나 링크)</label><input id="s-src" class="input" value="${esc(o.src||'')}" placeholder="예: 주최 측 공지 11/20"></div>
    </div>
    <div class="field"><label for="s-note">앱에 같이 보일 메모</label><input id="s-note" class="input" value="${esc(o.note||'')}" placeholder="예: 플로어는 F 출입문 전용"></div>
@@ -216,7 +219,29 @@ function shows(){const d=D();const id=ui.sel.shows||B.SHOWS.find(s=>!s.done).id;
    <span class="cap">입장 시각이 비어 있으면 앱에는 '공연 시작 1시간 30분 전 (예정)'으로 보여요. 근거 없이 시각을 넣지 마세요</span>
   </div>
   <div class="card soft"><h2>입력 기준</h2><span class="sm">입장 시각과 출입문은 주최 측, 예매처 공지에 나온 값만 넣어요<br>공지가 없으면 비워 두고 앱은 '확인 필요'나 '(예정)'으로 보여요<br>무대 템플릿에 따라 시야 3D와 구역 번호가 바뀌어요</span></div>
- </div>`;}
+ </div>
+ ${seatCard(id)}`;}
+
+/* 공연별 좌석 구성: 템플릿 기본값을 적용하고, 좌석 배치도와 대조해 판매 안 하는 구역과 좌석 수를 확인 */
+function seatCard(id){const sc0=DB.seats(id);const s=DB.show(id);const dr=ui.draft[id];
+ /* 템플릿 기본값을 적용했지만 아직 저장 전이면 입력칸과 미리보기는 그 값으로 */
+ const sc=dr?Object.assign({},sc0,{closed:dr.closed,floor:dr.floor,total:dr.total||sc0.total,src:dr.src||sc0.src}):sc0;
+ return `<div class="card"><h2>좌석 구성 확인</h2>
+  <span class="sm">같은 공연장도 무대 형태에 따라 판매하는 구역과 좌석 수가 달라요. 템플릿 기본값을 적용한 뒤, 예매처나 주최 측 좌석 배치도와 대조해 고치고 좌석 수를 확인해요</span>
+  <div class="grid g2">
+   <div style="display:flex;flex-direction:column;gap:12px">
+    <dl class="kv"><dt>무대 템플릿</dt><dd>${esc(sc.tpl)}, ${esc(sc.info.stage||'')}</dd><dt>지금 앱 표시</dt><dd>${sc0.confirmed?`${sc0.total.toLocaleString()}석, ${esc(sc0.src)} (${dt(sc0.at)} 확인)`:'좌석 수 확인 필요'}${sc0.applied?'':', 템플릿 기본값 사용 중'}</dd><dt>판매 안 하는 구역</dt><dd>${sc0.closed.length?sc0.closed.map(DB.secName).join(', '):'없음'}</dd></dl>${dr?`<span class="tag on">${esc(dr.tpl)} 기본값 적용됨, 저장 전</span>`:''}
+    <div class="field"><label for="s-closed">판매 안 하는 구역 (쉼표로 구분)</label><input id="s-closed" class="input" value="${esc(sc.closed.map(DB.secName).join(', '))}" placeholder="예: 101, 120, 플로어 B"></div>
+    <div class="grid g2" style="gap:12px">
+     <div class="field"><label for="s-floor">플로어</label><select id="s-floor" class="input">${['지정석','스탠딩','판매 안 함'].map(g=>`<option ${sc.floor===g?'selected':''}>${g}</option>`).join('')}</select></div>
+     <div class="field"><label for="s-total">이번 공연 좌석 수</label><input id="s-total" class="input" type="number" min="0" step="1" value="${sc.total||''}" placeholder="확인한 값만"></div>
+    </div>
+    <div class="field"><label for="s-tsrc">좌석 수 근거</label><input id="s-tsrc" class="input" value="${esc(sc.src)}" placeholder="예: 예매처 좌석 배치도 11/20"></div>
+    <div class="row"><button class="btn secondary" data-a="applyTpl" data-id="${id}">템플릿 기본값 적용</button><button class="btn primary" data-a="saveSeats" data-id="${id}">확인하고 앱에 반영</button></div>
+    <span class="cap">템플릿 기본값은 예시 배치예요. 좌석 수는 근거가 있을 때만 넣고, 비워 두면 앱에는 '좌석 수 확인 필요'로 보여요</span>
+   </div>
+   <div>${floorSvg(sc.closed,sc.floor,s.name+' 플로어 배치')}<span class="cap">× 표시는 이번 공연에서 판매하지 않는 플로어 블록</span></div>
+  </div></div>`;}
 
 /* ---------- A-03 좌석 템플릿 ---------- */
 function seats(){const d=D();const used=t=>B.SHOWS.filter(s=>(DB.show(s.id).template||'엔드 스테이지 A')===t).length;
@@ -225,7 +250,7 @@ function seats(){const d=D();const used=t=>B.SHOWS.filter(s=>(DB.show(s.id).temp
  return top('좌석 템플릿','무대 형태별 구역 배치를 관리하고, 앱 티켓 입력에서 들어온 새 구역을 처리해요')+`
  <div class="grid g2">
   <div class="card"><h2>엔드 스테이지 A 미리보기</h2>${svg}<span class="cap">1~4층 각 20구역(101~420), 플로어 A~L. 구역 배치는 예시예요</span></div>
-  <div class="card"><h2>템플릿</h2><div class="tw"><table class="tbl"><tr><th>이름</th><th>쓰는 공연</th><th>상태</th></tr>${B.TEMPLATES.map((t,i)=>`<tr><td><b>${t}</b></td><td class="num">${used(t)}개</td><td>${i===0?'<span class="tag on">앱 3D 반영</span>':'<span class="tag line">모형 준비 중</span>'}</td></tr>`).join('')}</table></div></div>
+  <div class="card"><h2>템플릿</h2><div class="tw"><table class="tbl"><tr><th>이름</th><th>무대</th><th>플로어</th><th>기본 판매 안 함</th><th>쓰는 공연</th><th>상태</th></tr>${B.TEMPLATES.map((t,i)=>{const f=B.TPL_INFO[t]||{};return `<tr><td><b>${t}</b></td><td class="sm">${esc(f.stage||'')}</td><td>${esc(f.floor||'')}</td><td class="sm">${(f.closed||[]).map(DB.secName).join(', ')||'없음'}</td><td class="num">${used(t)}개</td><td>${i===0?'<span class="tag on">앱 3D 반영</span>':'<span class="tag line">모형 준비 중</span>'}</td></tr>`;}).join('')}</table></div><span class="cap">공연마다 A-02 공연 관리에서 템플릿을 적용하고 좌석 수를 확인해요</span></div>
  </div>
  <div class="card"><h2>신규 구역 후보</h2><span class="sm">관람객이 구조도에 없는 구역을 티켓에 입력하면 여기 쌓여요. 같은 구역이 여러 번 들어오면 실제 구역일 가능성이 높아요</span>
  <div class="tw"><table class="tbl"><tr><th>구역</th><th>입력 횟수</th><th>처음 공연</th><th>마지막 입력</th><th>상태</th><th>처리</th></tr>
@@ -346,6 +371,17 @@ function act(a,ds){
   case 'saveShow':{const id=ds.id;const o={open:val('s-open'),gate:val('s-gate'),template:val('s-tpl'),src:val('s-src').trim(),note:val('s-note').trim(),at:now};
    if(o.open&&!o.src){toast('입장 시각을 넣을 때는 근거도 적어 주세요');return;}
    Object.keys(o).forEach(k=>{if(o[k]==='')delete o[k];});DB.set(d=>{d.shows[id]=o;DB.log(`공연 정보 수정: ${showName(id)}${o.open?', 입장 '+o.open:''}${o.gate?', 출입문 '+o.gate:''}`);});toast('저장했어요. 앱 홈과 공연장 탭에 반영돼요');break;}
+  case 'applyTpl':{const tpl=val('s-tpl')||'엔드 스테이지 A';const info=B.TPL_INFO[tpl]||{closed:[],floor:'지정석'};
+   ui.draft[ds.id]={tpl,closed:(info.closed||[]).slice(),floor:info.floor||'지정석',total:val('s-total').trim()?Number(val('s-total')):null,src:val('s-tsrc').trim()};
+   toast(`${tpl} 기본값을 채웠어요. 좌석 배치도와 대조한 뒤 저장해 주세요`);break;}
+  case 'saveSeats':{const id=ds.id;const p=DB.parseSecs(val('s-closed'));if(p.bad.length){toast('알 수 없는 구역: '+p.bad.join(', '));return;}
+   const tv=val('s-total').trim();const total=tv?Math.round(Number(tv)):null;const src=val('s-tsrc').trim();
+   if(tv&&!(total>0)){toast('좌석 수를 숫자로 넣어 주세요');return;}
+   if(total&&!src){toast('좌석 수를 넣을 때는 근거도 적어 주세요');return;}
+   const tpl=val('s-tpl')||'엔드 스테이지 A';
+   delete ui.draft[id];DB.set(d=>{const o=d.shows[id]||(d.shows[id]={});o.template=tpl;o.seats={closed:p.ok,floor:val('s-floor')||'지정석',total,src,at:now};o.at=now;
+    DB.log(`좌석 구성 확인: ${showName(id)}, ${tpl}${total?', '+total.toLocaleString()+'석':''}${p.ok.length?', 판매 안 함 '+p.ok.map(DB.secName).join(' '):''}`);});
+   toast(total?'저장했어요. 앱 시야 탭에 좌석 수와 판매 구역이 반영돼요':'저장했어요. 좌석 수는 아직 확인 필요로 보여요');break;}
   case 'clearShow':DB.set(d=>{delete d.shows[ds.id];DB.log(`공연 정보 입력값 지움: ${showName(ds.id)}`);});toast('입력값을 지웠어요');break;
   case 'zone':{const v=ds.v;const m=v==='합치기'?val('zm-'+ds.id):null;DB.set(d=>{const z=d.zoneCands.find(x=>x.id===ds.id);if(!z)return;z.status=v==='추가'?'추가 예정':v==='합치기'?'합침':'반려';if(m)z.merged=m;DB.log(`신규 구역 ${v}: ${z.label}${m?' → '+m:''}`);});toast(`${v} 처리했어요`);break;}
   case 'approve':case 'reject':{const reason=a==='reject'?val('v-reason'):null;DB.set(d=>{const v=d.verifs.find(x=>x.id===ds.id);if(!v)return;v.status=a==='approve'?'승인':'반려';v.reason=reason;v.doneAt=now;v.img=null;v.phone=mask(v.phone);DB.log(`회원 인증 ${v.status}: ${v.nick}, ${showName(v.show)}${reason?' ('+reason+')':''}`);});delete ui.chk[ds.id];ui.sel.verifs=null;toast(a==='approve'?'승인했어요. 캡처와 전화번호를 지웠어요':'반려했어요. 캡처와 전화번호를 지웠어요');break;}

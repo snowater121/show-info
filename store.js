@@ -24,6 +24,14 @@
       { n: '생각공장 구로', d: '약 950면', f: '30분 3,000원' }
     ],
     TEMPLATES: ['엔드 스테이지 A', '돌출 무대 B', '센터 스테이지 C'],
+    /* 무대 템플릿별 좌석 기본값. 같은 공연장도 무대 형태에 따라 판매하는 구역과 좌석 수가 달라서,
+       운영자가 공연마다 템플릿을 적용한 뒤 공지와 대조해 고치고 좌석 수를 확인한다 (A-02 공연 관리)
+       closed: 판매하지 않는 구역 id (층 구역 '312', 플로어 'FB'). 구역 배치는 모두 예시 값 */
+    TPL_INFO: {
+      '엔드 스테이지 A': { stage: '외야 쪽 끝 무대', floor: '지정석', closed: [], note: '기본 배치' },
+      '돌출 무대 B': { stage: '끝 무대 + 플로어 가운데 돌출 무대', floor: '지정석', closed: ['FB', 'FE', 'FH', 'FK'], note: '플로어 가운데 줄은 돌출 무대 자리' },
+      '센터 스테이지 C': { stage: '플로어 가운데 무대', floor: '스탠딩', closed: ['FE', 'FH'], note: '플로어 가운데는 무대 자리' }
+    },
     GATES: ['A, B (홈)', 'D, E (3루 쪽)', 'F, G (외야)'],
     /* 입장 시각 공지가 없을 때 쓰는 기본 규칙 */
     OPEN_BEFORE: 90
@@ -39,7 +47,7 @@
     const t = now();
     return {
       v: VER,
-      shows: {}, /* id: {open, gate, template, note, src, at} 운영자 입력 */
+      shows: {}, /* id: {open, gate, template, note, src, at, seats: {closed, floor, total, src, at}} 운영자 입력 */
       lots: {},  /* 번호: {d, f, note, at} */
       verifs: [
         { id: 'v1', uid: 'u-ex1', nick: '[닉네임1]', show: 'A', seat: '3층 312구역 F열 14번', phone: '010-****-1234', phoneMatch: true, img: null, at: t - 5 * H, status: '대기' },
@@ -121,6 +129,32 @@
       return { text: '확인 필요', est: true };
     },
     lot(i) { return Object.assign({}, BASE.LOTS[i], D.lots[i] || {}); },
+    /* 공연별 좌석 구성: 운영자 확인값 > 무대 템플릿 기본값. 좌석 수는 운영자가 근거와 함께 넣은 값만 보여 준다 */
+    seats(sid) {
+      const s = DB.show(sid); if (!s) return null;
+      const tpl = s.template || BASE.TEMPLATES[0];
+      const info = BASE.TPL_INFO[tpl] || { closed: [], floor: '지정석' };
+      const o = (D.shows[sid] || {}).seats;
+      return {
+        tpl, info,
+        closed: o ? (o.closed || []) : (info.closed || []),
+        floor: (o && o.floor) || info.floor,
+        total: (o && o.total) || null, src: (o && o.src) || '', at: (o && o.at) || null,
+        confirmed: !!(o && o.total && o.src), applied: !!o
+      };
+    },
+    secName(id) { return /^F[A-Z]$/.test(id) ? '플로어 ' + id.slice(1) : id; },
+    /* "101, 120, 플로어 B, FE" 같은 입력을 구역 id 목록으로 바꾼다. 알 수 없는 값은 bad로 돌려준다 */
+    parseSecs(text) {
+      const ok = [], bad = [];
+      String(text || '').split(/[,，、\n]/).map(t => t.trim()).filter(Boolean).forEach(t => {
+        const f = t.replace(/^플로어\s*/, 'F').replace(/구역$/, '').toUpperCase();
+        if (/^F[A-L]$/.test(f) || /^[1-4](0[1-9]|1\d|20)$/.test(f)) { if (!ok.includes(f)) ok.push(f); }
+        else if (/^[A-L]$/.test(f)) { if (!ok.includes('F' + f)) ok.push('F' + f); }
+        else bad.push(t);
+      });
+      return { ok, bad };
+    },
     /* 금칙어, 전화번호, 계좌 같은 숫자열 확인. 전화번호는 가려서 돌려준다 */
     check(text) {
       const flags = []; let clean = String(text || '');
